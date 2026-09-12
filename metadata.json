@@ -1,0 +1,6 @@
+{
+  "name": "Prasha | da handloom by prasha",
+  "description": "Premium Indian Handloom & Saree Store featuring Banarasi, Kanjivaram, Chanderi, and Heritage Weaves.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
