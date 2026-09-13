@@ -4,16 +4,12 @@ import React, { useState, useEffect } from 'react';
 import {
   X,
   User,
-  Mail,
-  Phone,
-  Lock,
   ArrowRight,
   LogOut,
   Package,
   MapPin,
   CheckCircle2,
   ShieldCheck,
-  Clock,
   ExternalLink,
   Edit3,
   Check
@@ -45,17 +41,11 @@ export default function AuthModal({
   selectedCurrency
 }: AuthModalProps) {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [loginMethod, setLoginMethod] = useState<'otp' | 'password'>('otp');
 
   const [phoneInput, setPhoneInput] = useState('');
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [nameInput, setNameInput] = useState('');
-
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [otpCountdown, setOtpCountdown] = useState(0);
-  const [mockSentOtp, setMockSentOtp] = useState('1234');
 
   const [accountTab, setAccountTab] = useState<'orders' | 'profile'>('orders');
 
@@ -70,14 +60,6 @@ export default function AuthModal({
 
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    if (otpCountdown > 0) {
-      timer = setTimeout(() => setOtpCountdown(prev => prev - 1), 1000);
-    }
-    return () => clearTimeout(timer);
-  }, [otpCountdown]);
 
   useEffect(() => {
     if (currentUser) {
@@ -96,7 +78,7 @@ export default function AuthModal({
     if (!currentUser || !token) return;
 
     let isMounted = true;
-    void fetch(`${process.env.VASTRA_API_URL || 'http://localhost:4000'}/api/v1/customers/profile`, {
+    void fetch('/api/auth/profile', {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(async (response) => {
@@ -123,50 +105,6 @@ export default function AuthModal({
 
   if (!isOpen) return null;
 
-  const handleSendOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanPhone = phoneInput.replace(/\D/g, '');
-    if (cleanPhone.length < 10) {
-      setErrorMsg('Please enter a valid 10-digit mobile number.');
-      return;
-    }
-
-    const generatedOtp = '1234';
-    setMockSentOtp(generatedOtp);
-    setOtpSent(true);
-    setOtpCountdown(30);
-    setErrorMsg('');
-    setSuccessMsg(`OTP sent to +91 ${cleanPhone}. (Use demo code: ${generatedOtp})`);
-  };
-
-  const handleVerifyOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otpCode || otpCode.trim() !== mockSentOtp) {
-      setErrorMsg(`Invalid verification code. Please enter ${mockSentOtp}.`);
-      return;
-    }
-
-    const cleanPhone = phoneInput.replace(/\D/g, '');
-    const loggedUser: UserProfile = {
-      id: `usr_${cleanPhone}`,
-      name: nameInput.trim() || (cleanPhone === '9876543210' ? 'Ananya Sharma' : 'Valued Patron'),
-      email: emailInput.trim() || `${cleanPhone}@prashahandloom.com`,
-      phone: cleanPhone,
-      address: '402 Royal Palms, MG Road',
-      city: 'Bengaluru',
-      state: 'Karnataka',
-      pincode: '560001',
-      joinedDate: 'September 2026',
-      tier: 'Silver Patron'
-    };
-
-    onLogin(loggedUser);
-    setOtpSent(false);
-    setOtpCode('');
-    setErrorMsg('');
-    setSuccessMsg('Logged in successfully!');
-  };
-
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!emailInput || !passwordInput) {
@@ -179,7 +117,7 @@ export default function AuthModal({
     }
 
     try {
-      const response = await fetch(`${process.env.VASTRA_API_URL || 'http://localhost:4000'}/api/v1/customers/login`, {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailInput.trim(), password: passwordInput })
@@ -235,7 +173,7 @@ export default function AuthModal({
       const [firstName, ...restName] = nameInput.trim().split(/\s+/);
       const lastName = restName.join(' ') || 'Customer';
 
-      const response = await fetch(`${process.env.VASTRA_API_URL || 'http://localhost:4000'}/api/v1/customers/register`, {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -295,7 +233,7 @@ export default function AuthModal({
     try {
       if (token) {
         const [firstName, ...restName] = updated.name.split(/\s+/);
-        const response = await fetch(`${process.env.VASTRA_API_URL || 'http://localhost:4000'}/api/v1/customers/profile`, {
+        const response = await fetch('/api/auth/profile', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -603,111 +541,8 @@ export default function AuthModal({
             )}
 
             {authMode === 'login' ? (
-              <div className="space-y-4">
-                <div className="flex gap-4 border-b border-stone-200 pb-2 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setLoginMethod('otp')}
-                    className={`font-semibold pb-1 cursor-pointer transition-colors ${
-                      loginMethod === 'otp' ? 'text-[#641F96] border-b-2 border-[#641F96]' : 'text-stone-400'
-                    }`}
-                  >
-                    Phone & OTP
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLoginMethod('password')}
-                    className={`font-semibold pb-1 cursor-pointer transition-colors ${
-                      loginMethod === 'password' ? 'text-[#641F96] border-b-2 border-[#641F96]' : 'text-stone-400'
-                    }`}
-                  >
-                    Email & Password
-                  </button>
-                </div>
-
-                {loginMethod === 'otp' ? (
-                  !otpSent ? (
-                    <form onSubmit={handleSendOtp} className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-stone-700 mb-1">
-                          Mobile Number
-                        </label>
-                        <div className="flex rounded-lg border border-stone-300 focus-within:border-[#641F96] overflow-hidden">
-                          <span className="px-3 py-2 bg-stone-100 text-xs font-semibold text-stone-600 border-r border-stone-300 flex items-center">
-                            +91
-                          </span>
-                          <input
-                            type="tel"
-                            maxLength={10}
-                            placeholder="Enter 10-digit phone"
-                            value={phoneInput}
-                            onChange={(e) => setPhoneInput(e.target.value)}
-                            className="flex-1 px-3 py-2 text-xs text-stone-900 focus:outline-none"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="w-full py-2.5 bg-[#641F96] hover:bg-[#3B0B5C] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
-                      >
-                        <span>Send Verification OTP</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </form>
-                  ) : (
-                    <form onSubmit={handleVerifyOtp} className="space-y-3">
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="text-xs font-semibold text-stone-700">
-                            Enter 4-Digit OTP
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => setOtpSent(false)}
-                            className="text-[11px] text-[#641F96] hover:underline cursor-pointer"
-                          >
-                            Change Number
-                          </button>
-                        </div>
-                        <input
-                          type="text"
-                          maxLength={4}
-                          value={otpCode}
-                          onChange={(e) => setOtpCode(e.target.value)}
-                          placeholder="e.g. 1234"
-                          className="w-full px-3 py-2.5 text-center text-lg tracking-[0.5em] font-mono font-bold border border-stone-300 rounded-lg focus:outline-none focus:border-[#641F96]"
-                          required
-                          autoFocus
-                        />
-                        <p className="text-[11px] text-stone-500 mt-1.5 flex items-center justify-between">
-                          <span>Demo Code: <strong className="text-stone-800">1234</strong></span>
-                          {otpCountdown > 0 ? (
-                            <span className="text-stone-400">Resend in {otpCountdown}s</span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={handleSendOtp}
-                              className="text-[#641F96] font-semibold hover:underline cursor-pointer"
-                            >
-                              Resend OTP
-                            </button>
-                          )}
-                        </p>
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="w-full py-2.5 bg-[#641F96] hover:bg-[#3B0B5C] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
-                      >
-                        <span>Verify & Sign In</span>
-                        <CheckCircle2 className="w-3.5 h-3.5 text-[#E6C268]" />
-                      </button>
-                    </form>
-                  )
-                ) : (
-                  <form onSubmit={handlePasswordLogin} className="space-y-3">
+              <div className="space-y-3">
+                <form onSubmit={handlePasswordLogin} className="space-y-3">
                     <div>
                       <label className="block text-xs font-semibold text-stone-700 mb-1">
                         Email Address
@@ -741,8 +576,7 @@ export default function AuthModal({
                       <span>Sign In</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
-                  </form>
-                )}
+                </form>
               </div>
             ) : (
               <form onSubmit={handleRegister} className="space-y-3">
