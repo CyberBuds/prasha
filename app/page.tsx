@@ -28,14 +28,7 @@ export default function Home() {
   const [catalogCategories, setCatalogCategories] = useState<CatalogCategory[]>([]);
   const [cartSessionId, setCartSessionId] = useState<string | null>(null);
   const [remoteCartItemIds, setRemoteCartItemIds] = useState<Record<string, number>>({});
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      saree: INITIAL_SAREES[0], // Pre-populate 1 item for quick preview
-      quantity: 1,
-      fallAndPicot: true,
-      blouseCustomization: { stitchType: 'unstitched' }
-    }
-  ]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [wishlistIds, setWishlistIds] = useState<string[]>([INITIAL_SAREES[1].id]);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [selectedCurrency, setSelectedCurrency] = useState<string>('INR');
