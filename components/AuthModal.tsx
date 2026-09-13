@@ -25,7 +25,7 @@ interface AuthModalProps {
   onLogout: () => void;
   onUpdateUser: (user: UserProfile) => void;
   ordersList: OrderDetails[];
-  onOpenOrderTracking: (orderId?: string) => void;
+  onOpenOrderTracking: (order?: OrderDetails) => void;
   selectedCurrency: string;
   loginPrompt?: string;
 }
@@ -153,9 +153,9 @@ export default function AuthModal({
         tier: 'Silver Patron'
       };
 
-      onLogin(user);
       window.localStorage.setItem('prasha-auth-token', payload?.data?.accessToken || '');
       window.localStorage.setItem('prasha-refresh-token', payload?.data?.refreshToken || '');
+      onLogin(user);
       setErrorMsg('');
       setSuccessMsg('Welcome back!');
     } catch (error) {
@@ -213,9 +213,9 @@ export default function AuthModal({
         tier: 'Silver Patron'
       };
 
-      onLogin(newUser);
       window.localStorage.setItem('prasha-auth-token', payload?.data?.accessToken || '');
       window.localStorage.setItem('prasha-refresh-token', payload?.data?.refreshToken || '');
+      onLogin(newUser);
       setErrorMsg('');
       setSuccessMsg('Welcome to PRASHA! Your account has been created.');
     } catch (error) {
@@ -422,7 +422,7 @@ export default function AuthModal({
                         <button
                           onClick={() => {
                             onClose();
-                            onOpenOrderTracking(ord.orderId);
+                            onOpenOrderTracking(ord);
                           }}
                           className="flex items-center gap-1 text-[11px] font-bold text-[#641F96] hover:text-[#3B0B5C] cursor-pointer"
                         >

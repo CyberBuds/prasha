@@ -8,12 +8,14 @@ interface OrderTrackingModalProps {
   isOpen: boolean;
   onClose: () => void;
   ordersList: OrderDetails[];
+  selectedOrder?: OrderDetails | null;
 }
 
 export default function OrderTrackingModal({
   isOpen,
   onClose,
-  ordersList
+  ordersList,
+  selectedOrder = null
 }: OrderTrackingModalProps) {
   const [searchId, setSearchId] = useState('');
   const [trackingEmail, setTrackingEmail] = useState('');
@@ -21,6 +23,13 @@ export default function OrderTrackingModal({
     ordersList.length > 0 ? ordersList[0] : null
   );
   const [errorMsg, setErrorMsg] = useState('');
+
+  React.useEffect(() => {
+    if (isOpen && selectedOrder) {
+      setFoundOrder(selectedOrder);
+      setErrorMsg('');
+    }
+  }, [isOpen, selectedOrder]);
 
   if (!isOpen) return null;
 
@@ -91,8 +100,8 @@ export default function OrderTrackingModal({
           </button>
         </div>
 
-        {/* Search Input Form */}
-        <form onSubmit={handleSearch} className="space-y-2">
+        {/* Guests can manually track an order; authenticated users arrive with their selected order. */}
+        {!selectedOrder && <form onSubmit={handleSearch} className="space-y-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 w-4 h-4 text-stone-400" />
             <input
@@ -114,7 +123,7 @@ export default function OrderTrackingModal({
           <button type="submit" className="w-full px-5 py-2.5 bg-[#581825] text-amber-100 font-bold rounded-lg text-xs hover:bg-[#722031] cursor-pointer">
             Track Order
           </button>
-        </form>
+        </form>}
 
         {errorMsg && <p className="text-xs text-red-600">{errorMsg}</p>}
 

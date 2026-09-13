@@ -96,6 +96,44 @@ export default function Home() {
   const [checkoutDiscount, setCheckoutDiscount] = useState(0);
   const [checkoutGiftWrap, setCheckoutGiftWrap] = useState(false);
   const [placedOrders, setPlacedOrders] = useState<OrderDetails[]>([]);
+  const [selectedTrackedOrder, setSelectedTrackedOrder] = useState<OrderDetails | null>(null);
+
+  useEffect(() => {
+    const token = window.localStorage.getItem('prasha-auth-token');
+    if (!currentUser || !token) {
+      setPlacedOrders([]);
+      return;
+    }
+
+    void fetch('/api/storefront/orders', { headers: { Authorization: `Bearer ${token}` } })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload?.message || 'Unable to load orders');
+        return payload.data || [];
+      })
+      .then((orders) => {
+        setPlacedOrders(orders.map((order: any): OrderDetails => ({
+          orderId: order.orderNumber,
+          customerName: currentUser.name,
+          email: currentUser.email,
+          phone: currentUser.phone,
+          address: order.shippingAddress?.addressLine1 || currentUser.address,
+          city: order.shippingAddress?.city || currentUser.city,
+          state: order.shippingAddress?.state || currentUser.state,
+          pincode: order.shippingAddress?.pincode || currentUser.pincode,
+          items: [],
+          subtotal: Number(order.subtotal || 0),
+          discountAmount: Number(order.discountAmount || 0) + Number(order.couponDiscount || 0),
+          shippingFee: Number(order.shippingCharge || 0),
+          totalAmount: Number(order.grandTotal || 0),
+          paymentMethod: 'COD',
+          status: order.orderStatus === 'DELIVERED' ? 'Delivered' : order.orderStatus === 'SHIPPED' ? 'Handloom Dispatched' : 'Order Placed',
+          createdAt: new Date(order.orderDate || order.createdAt).toLocaleDateString('en-IN'),
+          estimatedDelivery: 'To be confirmed'
+        })));
+      })
+      .catch(() => setPlacedOrders([]));
+  }, [currentUser]);
 
   const handleOpenProductDetail = (saree: Saree) => {
     setSelectedSareeForPage(saree);
@@ -303,7 +341,10 @@ export default function Home() {
         onOpenCart={() => setIsCartOpen(true)}
         onOpenWishlist={() => setIsWishlistOpen(true)}
         onOpenAiStylist={() => setIsAiStylistOpen(true)}
-        onOpenTrackOrder={() => setIsTrackOrderOpen(true)}
+        onOpenTrackOrder={() => {
+          setSelectedTrackedOrder(null);
+          setIsTrackOrderOpen(true);
+        }}
         onOpenAuth={() => setIsAuthOpen(true)}
         onSelectCategory={handleSelectCategory}
         onSearchQuery={handleSearchQuery}
@@ -508,12 +549,10 @@ export default function Home() {
           window.localStorage.setItem('prasha-user', JSON.stringify(user));
         }}
         ordersList={placedOrders}
-        onOpenOrderTracking={(orderId) => {
+        onOpenOrderTracking={(order) => {
           setIsAuthOpen(false);
+          setSelectedTrackedOrder(order || null);
           setIsTrackOrderOpen(true);
-          if (orderId) {
-            // keep modal open with existing data lookup; no extra action required here
-          }
         }}
         selectedCurrency={selectedCurrency}
         loginPrompt={checkoutLoginPrompt}
@@ -524,6 +563,7 @@ export default function Home() {
         isOpen={isTrackOrderOpen}
         onClose={() => setIsTrackOrderOpen(false)}
         ordersList={placedOrders}
+        selectedOrder={selectedTrackedOrder}
       />
 
       {/* Floating AI Stylist Chat Assistant Trigger Button */}
