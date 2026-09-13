@@ -80,22 +80,29 @@ export default function AuthModal({
     if (!currentUser || !token) return;
 
     let isMounted = true;
-    void fetch('/api/auth/profile', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(async (response) => {
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload?.message || 'Unable to load profile');
+    void Promise.all([
+      fetch('/api/auth/profile', { headers: { Authorization: `Bearer ${token}` } }),
+      fetch('/api/auth/profile/address', { headers: { Authorization: `Bearer ${token}` } })
+    ])
+      .then(async ([profileResponse, addressResponse]) => {
+        const profilePayload = await profileResponse.json();
+        if (!profileResponse.ok) throw new Error(profilePayload?.message || 'Unable to load profile');
         if (!isMounted) return;
 
-        const customer = payload?.data;
+        const customer = profilePayload?.data;
         if (!customer) return;
+        const addressPayload = addressResponse.ok ? await addressResponse.json() : null;
+        const address = addressPayload?.data;
         const name = [customer.firstName, customer.lastName].filter(Boolean).join(' ');
         onUpdateUser({
           ...currentUser,
           name: name || currentUser.name,
           email: customer.email || currentUser.email,
-          phone: customer.mobile || currentUser.phone
+          phone: customer.mobile || currentUser.phone,
+          address: address?.addressLine1 || currentUser.address,
+          city: address?.city || currentUser.city,
+          state: address?.state || currentUser.state,
+          pincode: address?.pincode || currentUser.pincode
         });
       })
       .catch(() => undefined);
@@ -233,22 +240,49 @@ export default function AuthModal({
     };
 
     try {
-      if (token) {
-        const [firstName, ...restName] = updated.name.split(/\s+/);
-        const response = await fetch('/api/auth/profile', {
+      if (!token) {
+        throw new Error('Please log in to update your profile.');
+      }
+
+      const addressFields = [updated.address, updated.city, updated.state, updated.pincode];
+      if (addressFields.some(Boolean) && addressFields.some((value) => !value)) {
+        throw new Error('Please complete your address, city, state, and pincode.');
+      }
+
+      const [firstName, ...restName] = updated.name.split(/\s+/);
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      };
+      const response = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          firstName,
+          lastName: restName.join(' ') || 'Customer',
+          mobile: updated.phone
+        })
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.message || 'Unable to save profile');
+
+      if (addressFields.some(Boolean)) {
+        const addressResponse = await fetch('/api/auth/profile/address', {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
+          headers,
           body: JSON.stringify({
-            firstName,
-            lastName: restName.join(' ') || 'Customer',
-            mobile: updated.phone
+            addressType: 'SHIPPING',
+            isDefaultShipping: true,
+            isDefaultBilling: true,
+            addressLine1: updated.address,
+            city: updated.city,
+            state: updated.state,
+            country: 'India',
+            pincode: updated.pincode
           })
         });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload?.message || 'Unable to save profile');
+        const addressPayload = await addressResponse.json();
+        if (!addressResponse.ok) throw new Error(addressPayload?.message || 'Unable to save address');
       }
 
       onUpdateUser(updated);
