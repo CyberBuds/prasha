@@ -12,7 +12,6 @@ import {
   Package,
   MapPin,
   CheckCircle2,
-  Sparkles,
   ShieldCheck,
   Clock,
   ExternalLink,
@@ -97,7 +96,7 @@ export default function AuthModal({
     if (!currentUser || !token) return;
 
     let isMounted = true;
-    void fetch(`${process.env.NEXT_PUBLIC_VASTRA_API_URL || 'http://localhost:4000'}/api/v1/customers/profile`, {
+    void fetch(`${process.env.VASTRA_API_URL || 'http://localhost:4000'}/api/v1/customers/profile`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(async (response) => {
@@ -123,24 +122,6 @@ export default function AuthModal({
   }, [currentUser?.id]);
 
   if (!isOpen) return null;
-
-  const handleQuickDemoLogin = () => {
-    const demoUser: UserProfile = {
-      id: 'usr_ananya_01',
-      name: 'Ananya Sharma',
-      email: 'ananya.sharma@example.com',
-      phone: '9876543210',
-      address: 'Flat 402, Royal Palms Apartments, Outer Ring Road',
-      city: 'Bengaluru',
-      state: 'Karnataka',
-      pincode: '560103',
-      joinedDate: 'August 2025',
-      tier: 'Gold Silk Connoisseur'
-    };
-    onLogin(demoUser);
-    setSuccessMsg('Welcome back, Ananya! You are logged in.');
-    setErrorMsg('');
-  };
 
   const handleSendOtp = (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,7 +179,7 @@ export default function AuthModal({
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_VASTRA_API_URL || 'http://localhost:4000'}/api/v1/customers/login`, {
+      const response = await fetch(`${process.env.VASTRA_API_URL || 'http://localhost:4000'}/api/v1/customers/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailInput.trim(), password: passwordInput })
@@ -254,7 +235,7 @@ export default function AuthModal({
       const [firstName, ...restName] = nameInput.trim().split(/\s+/);
       const lastName = restName.join(' ') || 'Customer';
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_VASTRA_API_URL || 'http://localhost:4000'}/api/v1/customers/register`, {
+      const response = await fetch(`${process.env.VASTRA_API_URL || 'http://localhost:4000'}/api/v1/customers/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -314,7 +295,7 @@ export default function AuthModal({
     try {
       if (token) {
         const [firstName, ...restName] = updated.name.split(/\s+/);
-        const response = await fetch(`${process.env.NEXT_PUBLIC_VASTRA_API_URL || 'http://localhost:4000'}/api/v1/customers/profile`, {
+        const response = await fetch(`${process.env.VASTRA_API_URL || 'http://localhost:4000'}/api/v1/customers/profile`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -577,25 +558,6 @@ export default function AuthModal({
           </div>
         ) : (
           <div className="p-6 space-y-4">
-            <div className="p-3 bg-gradient-to-r from-[#FAF8F5] to-[#F3EDE2] border border-[#E6C268] rounded-xl flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#641F96] block">
-                  Quick Access
-                </span>
-                <p className="text-xs font-semibold text-stone-800">
-                  Instant Test Sign In as VIP Patron
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleQuickDemoLogin}
-                className="px-3 py-1.5 bg-[#E6C268] hover:bg-[#d4b055] text-[#3B0B5C] text-xs font-bold rounded-lg shadow-xs transition-all cursor-pointer flex items-center gap-1"
-              >
-                <Sparkles className="w-3 h-3 text-[#3B0B5C]" />
-                <span>1-Click Demo</span>
-              </button>
-            </div>
-
             <div className="flex bg-stone-100 p-1 rounded-lg">
               <button
                 type="button"

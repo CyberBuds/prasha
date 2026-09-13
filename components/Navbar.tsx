@@ -513,7 +513,7 @@ export default function Navbar({
             {/* Login / Account */}
             <button 
               onClick={onOpenAuth}
-              className="hidden md:p-1.5 text-[#1A1A1A] hover:text-[#641F96] transition-colors cursor-pointer"
+              className="p-1.5 text-[#1A1A1A] hover:text-[#641F96] transition-colors cursor-pointer"
               title="Login or View Account"
             >
               <User className="w-5 h-5" />
