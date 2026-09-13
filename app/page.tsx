@@ -440,6 +440,7 @@ export default function Home() {
         giftWrap={checkoutGiftWrap}
         selectedCurrency={selectedCurrency}
         cartSessionId={cartSessionId}
+        currentUser={currentUser}
         onAuthenticationRequired={() => {
           setIsCheckoutOpen(false);
           setCheckoutLoginPending(true);

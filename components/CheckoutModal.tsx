@@ -12,7 +12,7 @@ import {
   ShoppingBag,
   Sparkles
 } from 'lucide-react';
-import { CartItem, OrderDetails } from '@/types';
+import { CartItem, OrderDetails, UserProfile } from '@/types';
 import { formatPrice } from './Navbar';
 
 interface CheckoutModalProps {
@@ -23,6 +23,7 @@ interface CheckoutModalProps {
   giftWrap: boolean;
   selectedCurrency: string;
   cartSessionId: string | null;
+  currentUser: UserProfile | null;
   onOrderSuccess: (order: OrderDetails) => void;
   onAuthenticationRequired: () => void;
 }
@@ -35,22 +36,37 @@ export default function CheckoutModal({
   giftWrap,
   selectedCurrency,
   cartSessionId,
+  currentUser,
   onOrderSuccess,
   onAuthenticationRequired
 }: CheckoutModalProps) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-  const [name, setName] = useState('Ananya Sharma');
-  const [email, setEmail] = useState('ananya.sharma@example.com');
-  const [phone, setPhone] = useState('9876543210');
-  const [address, setAddress] = useState('Flat 402, Royal Palms Apartments, Outer Ring Road');
-  const [city, setCity] = useState('Bengaluru');
-  const [state, setState] = useState('Karnataka');
-  const [pincode, setPincode] = useState('560103');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [pincode, setPincode] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'Card' | 'NetBanking' | 'COD'>('COD');
   const [upiId, setUpiId] = useState('ananya@okaxis');
   const [orderConfirmed, setOrderConfirmed] = useState<OrderDetails | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  React.useEffect(() => {
+    if (!isOpen || !currentUser) return;
+
+    setName(currentUser.name || '');
+    setEmail(currentUser.email || '');
+    setPhone(currentUser.phone || '');
+    setAddress(currentUser.address || '');
+    setCity(currentUser.city || '');
+    setState(currentUser.state || '');
+    setPincode(currentUser.pincode || '');
+    setStep(1);
+    setErrorMsg('');
+  }, [isOpen, currentUser]);
 
   if (!isOpen) return null;
 
@@ -207,9 +223,10 @@ export default function CheckoutModal({
                   type="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-2.5 bg-[#FAF8F5] border border-stone-300 rounded text-stone-900 focus:outline-none focus:border-[#581825]"
+                  readOnly
+                  className="w-full p-2.5 bg-stone-100 border border-stone-300 rounded text-stone-600 cursor-not-allowed"
                 />
+                <p className="mt-1 text-[10px] text-stone-500">Your account email is used for this order.</p>
               </div>
 
               <div>
