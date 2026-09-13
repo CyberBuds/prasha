@@ -92,6 +92,36 @@ export default function AuthModal({
     }
   }, [currentUser]);
 
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? window.localStorage.getItem('prasha-auth-token') : null;
+    if (!currentUser || !token) return;
+
+    let isMounted = true;
+    void fetch(`${process.env.NEXT_PUBLIC_VASTRA_API_URL || 'http://localhost:4000'}/api/v1/customers/profile`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload?.message || 'Unable to load profile');
+        if (!isMounted) return;
+
+        const customer = payload?.data;
+        if (!customer) return;
+        const name = [customer.firstName, customer.lastName].filter(Boolean).join(' ');
+        onUpdateUser({
+          ...currentUser,
+          name: name || currentUser.name,
+          email: customer.email || currentUser.email,
+          phone: customer.mobile || currentUser.phone
+        });
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.id]);
+
   if (!isOpen) return null;
 
   const handleQuickDemoLogin = () => {
@@ -168,7 +198,7 @@ export default function AuthModal({
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_VASTRA_API_URL || 'http://localhost:4000'}/api/v1/auth/login`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_VASTRA_API_URL || 'http://localhost:4000'}/api/v1/customers/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailInput.trim(), password: passwordInput })
@@ -179,13 +209,14 @@ export default function AuthModal({
         throw new Error(payload?.message || 'Login failed');
       }
 
+      const customer = payload?.data?.customer || payload?.data?.user || {};
       const user: UserProfile = {
-        id: `usr_${payload?.data?.user?.id || Date.now()}`,
-        name: payload?.data?.user?.firstName && payload?.data?.user?.lastName
-          ? `${payload.data.user.firstName} ${payload.data.user.lastName}`
+        id: `usr_${customer?.id || Date.now()}`,
+        name: customer?.firstName && customer?.lastName
+          ? `${customer.firstName} ${customer.lastName}`
           : emailInput.split('@')[0] || 'Silk Patron',
-        email: payload?.data?.user?.email || emailInput,
-        phone: payload?.data?.user?.mobile || phoneInput || '9876543210',
+        email: customer?.email || emailInput,
+        phone: customer?.mobile || phoneInput || '9876543210',
         address: '',
         city: '',
         state: '',
@@ -204,7 +235,7 @@ export default function AuthModal({
     }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nameInput.trim()) {
       setErrorMsg('Please enter your full name.');
@@ -219,28 +250,56 @@ export default function AuthModal({
       return;
     }
 
-    const newUser: UserProfile = {
-      id: `usr_${Date.now()}`,
-      name: nameInput.trim(),
-      email: emailInput.trim(),
-      phone: phoneInput.replace(/\D/g, ''),
-      address: '',
-      city: '',
-      state: '',
-      pincode: '',
-      joinedDate: 'September 2026',
-      tier: 'Silver Patron'
-    };
+    try {
+      const [firstName, ...restName] = nameInput.trim().split(/\s+/);
+      const lastName = restName.join(' ') || 'Customer';
 
-    onLogin(newUser);
-    setErrorMsg('');
-    setSuccessMsg('Welcome to PRASHA! Your account has been created.');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_VASTRA_API_URL || 'http://localhost:4000'}/api/v1/customers/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email: emailInput.trim(),
+          mobile: phoneInput.replace(/\D/g, ''),
+          password: passwordInput
+        })
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.message || 'Registration failed');
+      }
+
+      const customer = payload?.data?.customer || {};
+      const newUser: UserProfile = {
+        id: `usr_${customer?.id || Date.now()}`,
+        name: `${customer?.firstName || firstName} ${customer?.lastName || lastName}`.trim(),
+        email: customer?.email || emailInput.trim(),
+        phone: customer?.mobile || phoneInput.replace(/\D/g, ''),
+        address: '',
+        city: '',
+        state: '',
+        pincode: '',
+        joinedDate: 'September 2026',
+        tier: 'Silver Patron'
+      };
+
+      onLogin(newUser);
+      window.localStorage.setItem('prasha-auth-token', payload?.data?.accessToken || '');
+      window.localStorage.setItem('prasha-refresh-token', payload?.data?.refreshToken || '');
+      setErrorMsg('');
+      setSuccessMsg('Welcome to PRASHA! Your account has been created.');
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : 'Unable to create your account right now.');
+    }
   };
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
 
+    const token = window.localStorage.getItem('prasha-auth-token');
     const updated: UserProfile = {
       ...currentUser,
       name: editName.trim() || currentUser.name,
@@ -252,9 +311,31 @@ export default function AuthModal({
       pincode: editPincode.trim(),
     };
 
-    onUpdateUser(updated);
-    setProfileSavedToast(true);
-    setTimeout(() => setProfileSavedToast(false), 3000);
+    try {
+      if (token) {
+        const [firstName, ...restName] = updated.name.split(/\s+/);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_VASTRA_API_URL || 'http://localhost:4000'}/api/v1/customers/profile`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            firstName,
+            lastName: restName.join(' ') || 'Customer',
+            mobile: updated.phone
+          })
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload?.message || 'Unable to save profile');
+      }
+
+      onUpdateUser(updated);
+      setProfileSavedToast(true);
+      setTimeout(() => setProfileSavedToast(false), 3000);
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : 'Unable to save profile right now.');
+    }
   };
 
   return (
