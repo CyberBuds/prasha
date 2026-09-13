@@ -31,6 +31,8 @@ export default function Home() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [wishlistIds, setWishlistIds] = useState<string[]>([INITIAL_SAREES[1].id]);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [checkoutLoginPending, setCheckoutLoginPending] = useState(false);
+  const [checkoutLoginPrompt, setCheckoutLoginPrompt] = useState('');
   const [selectedCurrency, setSelectedCurrency] = useState<string>('INR');
   const [selectedCategoryTitle, setSelectedCategoryTitle] = useState<string>('All Heritage Weaves');
 
@@ -179,10 +181,25 @@ export default function Home() {
     setIsCartOpen(true);
   };
 
+  const handleCheckoutRequest = (discount = checkoutDiscount, giftWrap = checkoutGiftWrap) => {
+    setCheckoutDiscount(discount);
+    setCheckoutGiftWrap(giftWrap);
+    setIsCartOpen(false);
+
+    if (!currentUser) {
+      setCheckoutLoginPending(true);
+      setCheckoutLoginPrompt('Please log in to your account to proceed with checkout.');
+      setIsCheckoutOpen(false);
+      setIsAuthOpen(true);
+      return;
+    }
+
+    setIsCheckoutOpen(true);
+  };
+
   const handleBuyNow = (saree: Saree, fallAndPicot: boolean = true, blouseOptions?: BlouseCustomization) => {
     handleAddToCart(saree, fallAndPicot, blouseOptions);
-    setIsCartOpen(false);
-    setIsCheckoutOpen(true);
+    handleCheckoutRequest();
   };
 
   const handleUpdateCartQty = (index: number, newQty: number) => {
@@ -409,10 +426,7 @@ export default function Home() {
         onRemoveItem={handleRemoveCartItem}
         onToggleFallPicot={handleToggleFallPicot}
         onOpenCheckout={(disc, gift) => {
-          setCheckoutDiscount(disc);
-          setCheckoutGiftWrap(gift);
-          setIsCartOpen(false);
-          setIsCheckoutOpen(true);
+          handleCheckoutRequest(disc, gift);
         }}
         selectedCurrency={selectedCurrency}
       />
@@ -426,6 +440,12 @@ export default function Home() {
         giftWrap={checkoutGiftWrap}
         selectedCurrency={selectedCurrency}
         cartSessionId={cartSessionId}
+        onAuthenticationRequired={() => {
+          setIsCheckoutOpen(false);
+          setCheckoutLoginPending(true);
+          setCheckoutLoginPrompt('Please log in to your account to proceed with checkout.');
+          setIsAuthOpen(true);
+        }}
         onOrderSuccess={(order) => {
           setPlacedOrders(prev => [order, ...prev]);
           setCartItems([]);
@@ -457,16 +477,29 @@ export default function Home() {
       {/* 7. User Auth Modal */}
       <AuthModal
         isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
+        onClose={() => {
+          setIsAuthOpen(false);
+          setCheckoutLoginPending(false);
+          setCheckoutLoginPrompt('');
+        }}
         currentUser={currentUser}
         onLogin={(user) => {
           setCurrentUser(user);
           window.localStorage.setItem('prasha-user', JSON.stringify(user));
-          setIsAuthOpen(true);
+          if (checkoutLoginPending) {
+            setCheckoutLoginPending(false);
+            setCheckoutLoginPrompt('');
+            setIsAuthOpen(false);
+            setIsCheckoutOpen(true);
+          } else {
+            setIsAuthOpen(true);
+          }
         }}
         onLogout={() => {
           setCurrentUser(null);
           window.localStorage.removeItem('prasha-user');
+          window.localStorage.removeItem('prasha-auth-token');
+          window.localStorage.removeItem('prasha-refresh-token');
           setIsAuthOpen(false);
         }}
         onUpdateUser={(user) => {
@@ -482,6 +515,7 @@ export default function Home() {
           }
         }}
         selectedCurrency={selectedCurrency}
+        loginPrompt={checkoutLoginPrompt}
       />
 
       {/* 8. Order Tracking Modal */}

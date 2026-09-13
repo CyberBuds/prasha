@@ -27,6 +27,7 @@ interface AuthModalProps {
   ordersList: OrderDetails[];
   onOpenOrderTracking: (orderId?: string) => void;
   selectedCurrency: string;
+  loginPrompt?: string;
 }
 
 export default function AuthModal({
@@ -38,7 +39,8 @@ export default function AuthModal({
   onUpdateUser,
   ordersList,
   onOpenOrderTracking,
-  selectedCurrency
+  selectedCurrency,
+  loginPrompt
 }: AuthModalProps) {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
@@ -529,9 +531,9 @@ export default function AuthModal({
               </button>
             </div>
 
-            {errorMsg && (
+            {(loginPrompt || errorMsg) && (
               <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs">
-                {errorMsg}
+                {errorMsg || loginPrompt}
               </div>
             )}
             {successMsg && (

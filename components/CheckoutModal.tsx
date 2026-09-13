@@ -24,6 +24,7 @@ interface CheckoutModalProps {
   selectedCurrency: string;
   cartSessionId: string | null;
   onOrderSuccess: (order: OrderDetails) => void;
+  onAuthenticationRequired: () => void;
 }
 
 export default function CheckoutModal({
@@ -34,7 +35,8 @@ export default function CheckoutModal({
   giftWrap,
   selectedCurrency,
   cartSessionId,
-  onOrderSuccess
+  onOrderSuccess,
+  onAuthenticationRequired
 }: CheckoutModalProps) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [name, setName] = useState('Ananya Sharma');
@@ -48,6 +50,7 @@ export default function CheckoutModal({
   const [upiId, setUpiId] = useState('ananya@okaxis');
   const [orderConfirmed, setOrderConfirmed] = useState<OrderDetails | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   if (!isOpen) return null;
 
@@ -64,49 +67,69 @@ export default function CheckoutModal({
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    let remoteOrderNumber: string | null = null;
-
-    if (cartSessionId && cartItems.every((item) => Number.isInteger(Number(item.saree.id)))) {
-      try {
-        const response = await fetch('/api/storefront/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId: cartSessionId, name, email, phone, address, city, state, pincode, paymentMethod: 'COD' })
-        });
-        if (response.ok) {
-          const payload = await response.json();
-          remoteOrderNumber = payload.data?.orderNumber || null;
-        }
-      } catch {
-        // Preserve the local confirmation if the remote checkout is unavailable.
-      }
+    const token = window.localStorage.getItem('prasha-auth-token');
+    if (!token) {
+      onAuthenticationRequired();
+      return;
     }
 
-    const newOrder: OrderDetails = {
-      orderId: remoteOrderNumber || `PR-${Math.floor(10000 + Math.random() * 90000)}`,
-      customerName: name,
-      email,
-      phone,
-      address,
-      city,
-      state,
-      pincode,
-      items: [...cartItems],
-      subtotal: itemsSubtotal,
-      discountAmount,
-      shippingFee,
-      totalAmount,
-      paymentMethod,
-      status: 'Order Placed',
-      createdAt: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-      estimatedDelivery: new Date(Date.now() + 4 * 86400000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-    };
+    setIsSubmitting(true);
+    setErrorMsg('');
 
-    setOrderConfirmed(newOrder);
-    onOrderSuccess(newOrder);
-    setStep(4);
-    setIsSubmitting(false);
+    if (!cartSessionId || !cartItems.every((item) => Number.isInteger(Number(item.saree.id)))) {
+      setErrorMsg('Your cart cannot be checked out. Please refresh and try again.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/storefront/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ sessionId: cartSessionId, name, email, phone, address, city, state, pincode, paymentMethod: 'COD' })
+      });
+      const payload = await response.json();
+      if (response.status === 401) {
+        onAuthenticationRequired();
+        return;
+      }
+      if (!response.ok) {
+        throw new Error(payload?.message || 'Unable to place your order.');
+      }
+
+      const remoteOrderNumber = payload.data?.orderNumber;
+      if (!remoteOrderNumber) {
+        throw new Error('Order confirmation was not received. Please try again.');
+      }
+
+      const newOrder: OrderDetails = {
+        orderId: remoteOrderNumber,
+        customerName: name,
+        email,
+        phone,
+        address,
+        city,
+        state,
+        pincode,
+        items: [...cartItems],
+        subtotal: itemsSubtotal,
+        discountAmount,
+        shippingFee,
+        totalAmount,
+        paymentMethod,
+        status: 'Order Placed',
+        createdAt: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+        estimatedDelivery: new Date(Date.now() + 4 * 86400000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+      };
+
+      setOrderConfirmed(newOrder);
+      onOrderSuccess(newOrder);
+      setStep(4);
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : 'Unable to place your order.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handlePrintReceipt = () => {
@@ -143,6 +166,12 @@ export default function CheckoutModal({
         )}
 
         <div className="p-6 overflow-y-auto flex-1">
+          {errorMsg && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+              {errorMsg}
+            </div>
+          )}
+
           {/* STEP 1: SHIPPING ADDRESS */}
           {step === 1 && (
             <form onSubmit={() => setStep(2)} className="space-y-4 text-xs">
