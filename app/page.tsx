@@ -491,6 +491,10 @@ export default function Home() {
         onOrderSuccess={(order) => {
           setPlacedOrders(prev => [order, ...prev]);
           setCartItems([]);
+          const nextSessionId = crypto.randomUUID();
+          window.localStorage.setItem('prasha-cart-session', nextSessionId);
+          setCartSessionId(nextSessionId);
+          setRemoteCartItemIds({});
         }}
       />
 
