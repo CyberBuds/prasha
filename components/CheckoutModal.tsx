@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { CartItem, OrderDetails, UserProfile } from '@/types';
 import { formatPrice } from './Navbar';
+import { authenticatedFetch } from '@/lib/session';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -83,12 +84,6 @@ export default function CheckoutModal({
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    const token = window.localStorage.getItem('prasha-auth-token');
-    if (!token) {
-      onAuthenticationRequired();
-      return;
-    }
-
     setIsSubmitting(true);
     setErrorMsg('');
 
@@ -99,9 +94,9 @@ export default function CheckoutModal({
     }
 
     try {
-      const response = await fetch('/api/storefront/checkout', {
+      const response = await authenticatedFetch('/api/storefront/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId: cartSessionId, name, email, phone, address, city, state, pincode, paymentMethod: 'COD' })
       });
       const payload = await response.json();

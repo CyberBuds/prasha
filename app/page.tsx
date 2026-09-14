@@ -22,6 +22,22 @@ import Footer from '@/components/Footer';
 import { INITIAL_SAREES } from '@/data/sarees';
 import { Saree, CartItem, FilterState, BlouseCustomization, OrderDetails, UserProfile } from '@/types';
 import { CatalogCategory, fetchCatalog } from '@/lib/catalog';
+import { authenticatedFetch, clearSession, getValidatedSession, SESSION_EXPIRED_EVENT } from '@/lib/session';
+
+function toUserProfile(customer: any): UserProfile {
+  return {
+    id: `usr_${customer.id}`,
+    name: [customer.firstName, customer.lastName].filter(Boolean).join(' ') || customer.email || 'Silk Patron',
+    email: customer.email || '',
+    phone: customer.mobile || '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    joinedDate: 'Logged in via API',
+    tier: 'Silver Patron'
+  };
+}
 
 export default function Home() {
   const [sarees, setSarees] = useState<Saree[]>(INITIAL_SAREES);
@@ -39,14 +55,14 @@ export default function Home() {
   useEffect(() => {
     let isMounted = true;
 
-    const savedUser = window.localStorage.getItem('prasha-user');
-    if (savedUser) {
-      try {
-        setCurrentUser(JSON.parse(savedUser));
-      } catch {
-        window.localStorage.removeItem('prasha-user');
-      }
-    }
+    // Stored user data is display cache only. Authentication is restored only
+    // after the protected API confirms the current access token.
+    void getValidatedSession<any>().then((customer) => {
+      if (!isMounted || !customer) return;
+      const user = toUserProfile(customer);
+      setCurrentUser(user);
+      window.localStorage.setItem('prasha-user', JSON.stringify(user));
+    });
 
     const existingSessionId = window.localStorage.getItem('prasha-cart-session');
     const sessionId = existingSessionId || crypto.randomUUID();
@@ -65,6 +81,31 @@ export default function Home() {
 
     return () => {
       isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleExpiredSession = () => {
+      setCurrentUser(null);
+      setPlacedOrders([]);
+      setIsCheckoutOpen(false);
+      setCheckoutLoginPending(true);
+      setCheckoutLoginPrompt('Your session has expired. Please log in again to continue.');
+      setIsAuthOpen(true);
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleExpiredSession);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleExpiredSession);
+  }, []);
+
+  useEffect(() => {
+    // Reconfirm the server-side session while the storefront is open. This is
+    // intentionally a protected API check rather than a local token/user test.
+    const validateOnFocus = () => void getValidatedSession();
+    const interval = window.setInterval(validateOnFocus, 60_000);
+    window.addEventListener('focus', validateOnFocus);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', validateOnFocus);
     };
   }, []);
 
@@ -99,13 +140,12 @@ export default function Home() {
   const [selectedTrackedOrder, setSelectedTrackedOrder] = useState<OrderDetails | null>(null);
 
   useEffect(() => {
-    const token = window.localStorage.getItem('prasha-auth-token');
-    if (!currentUser || !token) {
+    if (!currentUser) {
       setPlacedOrders([]);
       return;
     }
 
-    void fetch('/api/storefront/orders', { headers: { Authorization: `Bearer ${token}` } })
+    void authenticatedFetch('/api/storefront/orders')
       .then(async (response) => {
         const payload = await response.json();
         if (!response.ok) throw new Error(payload?.message || 'Unable to load orders');
@@ -134,6 +174,20 @@ export default function Home() {
       })
       .catch(() => setPlacedOrders([]));
   }, [currentUser]);
+
+  const requireActiveSession = async (prompt: string) => {
+    const customer = await getValidatedSession<any>();
+    if (!customer) {
+      setCheckoutLoginPending(true);
+      setCheckoutLoginPrompt(prompt);
+      setIsAuthOpen(true);
+      return false;
+    }
+    const user = toUserProfile(customer);
+    setCurrentUser(user);
+    window.localStorage.setItem('prasha-user', JSON.stringify(user));
+    return true;
+  };
 
   const handleOpenProductDetail = (saree: Saree) => {
     setSelectedSareeForPage(saree);
@@ -219,12 +273,12 @@ export default function Home() {
     setIsCartOpen(true);
   };
 
-  const handleCheckoutRequest = (discount = checkoutDiscount, giftWrap = checkoutGiftWrap) => {
+  const handleCheckoutRequest = async (discount = checkoutDiscount, giftWrap = checkoutGiftWrap) => {
     setCheckoutDiscount(discount);
     setCheckoutGiftWrap(giftWrap);
     setIsCartOpen(false);
 
-    if (!currentUser) {
+    if (!await requireActiveSession('Please log in to your account to proceed with checkout.')) {
       setCheckoutLoginPending(true);
       setCheckoutLoginPrompt('Please log in to your account to proceed with checkout.');
       setIsCheckoutOpen(false);
@@ -235,9 +289,10 @@ export default function Home() {
     setIsCheckoutOpen(true);
   };
 
-  const handleBuyNow = (saree: Saree, fallAndPicot: boolean = true, blouseOptions?: BlouseCustomization) => {
+  const handleBuyNow = async (saree: Saree, fallAndPicot: boolean = true, blouseOptions?: BlouseCustomization) => {
+    if (!await requireActiveSession('Please log in to buy this item.')) return;
     handleAddToCart(saree, fallAndPicot, blouseOptions);
-    handleCheckoutRequest();
+    await handleCheckoutRequest();
   };
 
   const handleUpdateCartQty = (index: number, newQty: number) => {
@@ -285,10 +340,18 @@ export default function Home() {
   };
 
   // Wishlist Actions
-  const handleToggleWishlist = (sareeId: string) => {
+  const handleToggleWishlist = async (sareeId: string) => {
+    if (!await requireActiveSession('Please log in to manage your wishlist.')) return;
     setWishlistIds(prev =>
       prev.includes(sareeId) ? prev.filter(id => id !== sareeId) : [...prev, sareeId]
     );
+  };
+
+  const handleOpenAccount = async () => {
+    if (window.localStorage.getItem('prasha-auth-token')) {
+      if (!await requireActiveSession('Your session has expired. Please log in again.')) return;
+    }
+    setIsAuthOpen(true);
   };
 
   // Filtering Logic
@@ -345,7 +408,7 @@ export default function Home() {
           setSelectedTrackedOrder(null);
           setIsTrackOrderOpen(true);
         }}
-        onOpenAuth={() => setIsAuthOpen(true)}
+        onOpenAuth={handleOpenAccount}
         onSelectCategory={handleSelectCategory}
         onSearchQuery={handleSearchQuery}
         selectedCurrency={selectedCurrency}
@@ -467,7 +530,7 @@ export default function Home() {
         onRemoveItem={handleRemoveCartItem}
         onToggleFallPicot={handleToggleFallPicot}
         onOpenCheckout={(disc, gift) => {
-          handleCheckoutRequest(disc, gift);
+          void handleCheckoutRequest(disc, gift);
         }}
         selectedCurrency={selectedCurrency}
       />
@@ -543,9 +606,7 @@ export default function Home() {
         }}
         onLogout={() => {
           setCurrentUser(null);
-          window.localStorage.removeItem('prasha-user');
-          window.localStorage.removeItem('prasha-auth-token');
-          window.localStorage.removeItem('prasha-refresh-token');
+          clearSession();
           setIsAuthOpen(false);
         }}
         onUpdateUser={(user) => {

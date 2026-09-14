@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { UserProfile, OrderDetails } from '@/types';
 import { formatPrice } from './Navbar';
+import { authenticatedFetch } from '@/lib/session';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -76,13 +77,12 @@ export default function AuthModal({
   }, [currentUser]);
 
   useEffect(() => {
-    const token = typeof window !== 'undefined' ? window.localStorage.getItem('prasha-auth-token') : null;
-    if (!currentUser || !token) return;
+    if (!currentUser) return;
 
     let isMounted = true;
     void Promise.all([
-      fetch('/api/auth/profile', { headers: { Authorization: `Bearer ${token}` } }),
-      fetch('/api/auth/profile/address', { headers: { Authorization: `Bearer ${token}` } })
+      authenticatedFetch('/api/auth/profile'),
+      authenticatedFetch('/api/auth/profile/address')
     ])
       .then(async ([profileResponse, addressResponse]) => {
         const profilePayload = await profileResponse.json();
@@ -227,7 +227,6 @@ export default function AuthModal({
     e.preventDefault();
     if (!currentUser) return;
 
-    const token = window.localStorage.getItem('prasha-auth-token');
     const updated: UserProfile = {
       ...currentUser,
       name: editName.trim() || currentUser.name,
@@ -240,21 +239,14 @@ export default function AuthModal({
     };
 
     try {
-      if (!token) {
-        throw new Error('Please log in to update your profile.');
-      }
-
       const addressFields = [updated.address, updated.city, updated.state, updated.pincode];
       if (addressFields.some(Boolean) && addressFields.some((value) => !value)) {
         throw new Error('Please complete your address, city, state, and pincode.');
       }
 
       const [firstName, ...restName] = updated.name.split(/\s+/);
-      const headers = {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      };
-      const response = await fetch('/api/auth/profile', {
+      const headers = { 'Content-Type': 'application/json' };
+      const response = await authenticatedFetch('/api/auth/profile', {
         method: 'PUT',
         headers,
         body: JSON.stringify({
@@ -267,7 +259,7 @@ export default function AuthModal({
       if (!response.ok) throw new Error(payload?.message || 'Unable to save profile');
 
       if (addressFields.some(Boolean)) {
-        const addressResponse = await fetch('/api/auth/profile/address', {
+        const addressResponse = await authenticatedFetch('/api/auth/profile/address', {
           method: 'PUT',
           headers,
           body: JSON.stringify({
