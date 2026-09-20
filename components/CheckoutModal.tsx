@@ -10,7 +10,8 @@ import {
   QrCode, 
   Printer, 
   ShoppingBag,
-  Sparkles
+  Sparkles,
+  LoaderCircle
 } from 'lucide-react';
 import { CartItem, OrderDetails, UserProfile } from '@/types';
 import { formatPrice } from './Navbar';
@@ -53,11 +54,13 @@ export default function CheckoutModal({
   const [upiId, setUpiId] = useState('ananya@okaxis');
   const [orderConfirmed, setOrderConfirmed] = useState<OrderDetails | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingSavedAddress, setIsLoadingSavedAddress] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   React.useEffect(() => {
     if (!isOpen || !currentUser) return;
 
+    let isMounted = true;
     setName(currentUser.name || '');
     setEmail(currentUser.email || '');
     setPhone(currentUser.phone || '');
@@ -67,6 +70,37 @@ export default function CheckoutModal({
     setPincode(currentUser.pincode || '');
     setStep(1);
     setErrorMsg('');
+
+    setIsLoadingSavedAddress(true);
+    void Promise.all([
+      authenticatedFetch('/api/auth/profile'),
+      authenticatedFetch('/api/auth/profile/address')
+    ])
+      .then(async ([profileResponse, addressResponse]) => {
+        if (!isMounted || !profileResponse.ok) return;
+
+        const profilePayload = await profileResponse.json();
+        const addressPayload = addressResponse.ok ? await addressResponse.json() : null;
+        const customer = profilePayload?.data;
+        const savedAddress = addressPayload?.data;
+        if (!customer || !isMounted) return;
+
+        setName([customer.firstName, customer.lastName].filter(Boolean).join(' ') || currentUser.name || '');
+        setEmail(customer.email || currentUser.email || '');
+        setPhone(customer.mobile || currentUser.phone || '');
+        setAddress(savedAddress?.addressLine1 || currentUser.address || '');
+        setCity(savedAddress?.city || currentUser.city || '');
+        setState(savedAddress?.state || currentUser.state || '');
+        setPincode(savedAddress?.pincode || currentUser.pincode || '');
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (isMounted) setIsLoadingSavedAddress(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [isOpen, currentUser]);
 
   if (!isOpen) return null;
@@ -226,6 +260,11 @@ export default function CheckoutModal({
 
               <div>
                 <label className="font-medium text-stone-700 block mb-1">Flat / House No., Street, Colony *</label>
+                {isLoadingSavedAddress && (
+                  <p className="mb-1 flex items-center gap-1 text-[10px] text-stone-500">
+                    <LoaderCircle className="h-3 w-3 animate-spin" /> Loading your saved address...
+                  </p>
+                )}
                 <input
                   type="text"
                   required

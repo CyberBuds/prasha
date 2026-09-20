@@ -622,7 +622,8 @@ export default function Home() {
             setIsAuthOpen(false);
             setIsCheckoutOpen(true);
           } else {
-            setIsAuthOpen(true);
+            setSelectedSareeForPage(null);
+            setIsAuthOpen(false);
           }
         }}
         onLogout={() => {
