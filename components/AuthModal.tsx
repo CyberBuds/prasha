@@ -12,7 +12,8 @@ import {
   ShieldCheck,
   ExternalLink,
   Edit3,
-  Check
+  Check,
+  LoaderCircle
 } from 'lucide-react';
 import { UserProfile, OrderDetails } from '@/types';
 import { formatPrice } from './Navbar';
@@ -63,6 +64,8 @@ export default function AuthModal({
 
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -116,6 +119,7 @@ export default function AuthModal({
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isAuthSubmitting) return;
     if (!emailInput || !passwordInput) {
       setErrorMsg('Please fill in both email and password.');
       return;
@@ -125,6 +129,7 @@ export default function AuthModal({
       return;
     }
 
+    setIsAuthSubmitting(true);
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -160,11 +165,14 @@ export default function AuthModal({
       setSuccessMsg('Welcome back!');
     } catch (error) {
       setErrorMsg(error instanceof Error ? error.message : 'Unable to sign in right now.');
+    } finally {
+      setIsAuthSubmitting(false);
     }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isAuthSubmitting) return;
     if (!nameInput.trim()) {
       setErrorMsg('Please enter your full name.');
       return;
@@ -178,6 +186,7 @@ export default function AuthModal({
       return;
     }
 
+    setIsAuthSubmitting(true);
     try {
       const [firstName, ...restName] = nameInput.trim().split(/\s+/);
       const lastName = restName.join(' ') || 'Customer';
@@ -220,12 +229,15 @@ export default function AuthModal({
       setSuccessMsg('Welcome to PRASHA! Your account has been created.');
     } catch (error) {
       setErrorMsg(error instanceof Error ? error.message : 'Unable to create your account right now.');
+    } finally {
+      setIsAuthSubmitting(false);
     }
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser) return;
+    if (!currentUser || isProfileSaving) return;
+    setIsProfileSaving(true);
 
     const updated: UserProfile = {
       ...currentUser,
@@ -282,6 +294,8 @@ export default function AuthModal({
       setTimeout(() => setProfileSavedToast(false), 3000);
     } catch (error) {
       setErrorMsg(error instanceof Error ? error.message : 'Unable to save profile right now.');
+    } finally {
+      setIsProfileSaving(false);
     }
   };
 
@@ -514,10 +528,11 @@ export default function AuthModal({
 
                 <button
                   type="submit"
-                  className="w-full py-2.5 mt-2 bg-[#641F96] hover:bg-[#3B0B5C] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  disabled={isProfileSaving}
+                  className="w-full py-2.5 mt-2 bg-[#641F96] hover:bg-[#3B0B5C] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:cursor-wait disabled:opacity-70 flex items-center justify-center gap-1.5"
                 >
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Save Shipping Information</span>
+                  {isProfileSaving ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                  <span>{isProfileSaving ? 'Saving...' : 'Save Shipping Information'}</span>
                 </button>
               </form>
             )}
@@ -599,10 +614,10 @@ export default function AuthModal({
                     </div>
                     <button
                       type="submit"
-                      className="w-full py-2.5 bg-[#641F96] hover:bg-[#3B0B5C] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+                      disabled={isAuthSubmitting}
+                      className="w-full py-2.5 bg-[#641F96] hover:bg-[#3B0B5C] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:cursor-wait disabled:opacity-70 flex items-center justify-center gap-1.5 shadow-sm"
                     >
-                      <span>Sign In</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      {isAuthSubmitting ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <><span>Sign In</span><ArrowRight className="w-3.5 h-3.5" /></>}
                     </button>
                 </form>
               </div>
@@ -669,10 +684,10 @@ export default function AuthModal({
 
                 <button
                   type="submit"
-                  className="w-full py-2.5 bg-[#641F96] hover:bg-[#3B0B5C] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+                  disabled={isAuthSubmitting}
+                  className="w-full py-2.5 bg-[#641F96] hover:bg-[#3B0B5C] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:cursor-wait disabled:opacity-70 flex items-center justify-center gap-1.5 shadow-sm"
                 >
-                  <span>Create Patron Account</span>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#E6C268]" />
+                  {isAuthSubmitting ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <><span>Create Patron Account</span><CheckCircle2 className="w-3.5 h-3.5 text-[#E6C268]" /></>}
                 </button>
               </form>
             )}

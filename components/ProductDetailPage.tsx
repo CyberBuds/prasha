@@ -18,7 +18,8 @@ import {
   ChevronRight,
   ChevronLeft,
   Info,
-  Award
+  Award,
+  LoaderCircle
 } from 'lucide-react';
 import { Saree, BlouseCustomization } from '@/types';
 import { formatPrice } from '@/components/Navbar';
@@ -29,6 +30,7 @@ interface ProductDetailPageProps {
   isWishlisted: boolean;
   onToggleWishlist: (id: string) => void;
   onAddToCart: (saree: Saree, fallAndPicot: boolean, blouseOptions?: BlouseCustomization) => void;
+  isAddingToCart?: boolean;
   onBuyNow: (saree: Saree, fallAndPicot: boolean, blouseOptions?: BlouseCustomization) => void;
   onBack: () => void;
   allSarees: Saree[];
@@ -42,6 +44,7 @@ export default function ProductDetailPage({
   isWishlisted,
   onToggleWishlist,
   onAddToCart,
+  isAddingToCart = false,
   onBuyNow,
   onBack,
   allSarees,
@@ -82,6 +85,7 @@ export default function ProductDetailPage({
     .slice(0, 4);
 
   const handleAddToCart = () => {
+    if (isAddingToCart) return;
     const blouseOptions: BlouseCustomization = {
       stitchType: blouseType === 'unstitched' ? 'unstitched' : 'stitched',
       bustSize: blouseType !== 'unstitched' ? parseInt(blouseSize, 10) : undefined,
@@ -451,10 +455,11 @@ export default function ProductDetailPage({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   onClick={handleAddToCart}
-                  className="w-full py-4 bg-[#641F96] hover:bg-[#3B0B5C] text-white text-xs uppercase tracking-[0.2em] font-bold rounded-md shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                  disabled={isAddingToCart}
+                  className="w-full py-4 bg-[#641F96] hover:bg-[#3B0B5C] text-white text-xs uppercase tracking-[0.2em] font-bold rounded-md shadow-md transition-all disabled:cursor-wait disabled:opacity-70 cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <ShoppingBag className="w-4 h-4 text-[#E6C268]" />
-                  <span>Add to Bag</span>
+                  {isAddingToCart ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <ShoppingBag className="w-4 h-4 text-[#E6C268]" />}
+                  <span>{isAddingToCart ? 'Adding...' : 'Add to Bag'}</span>
                 </button>
 
                 <button

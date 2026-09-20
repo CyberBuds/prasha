@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck, Tag, Gift } from 'lucide-react';
+import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck, Tag, Gift, LoaderCircle } from 'lucide-react';
 import { CartItem } from '@/types';
 import { formatPrice } from './Navbar';
 
@@ -14,6 +14,7 @@ interface CartDrawerProps {
   onToggleFallPicot: (index: number) => void;
   onOpenCheckout: (discountAmount: number, giftWrap: boolean) => void;
   selectedCurrency: string;
+  pendingItemIndex?: number | null;
 }
 
 export default function CartDrawer({
@@ -24,7 +25,8 @@ export default function CartDrawer({
   onRemoveItem,
   onToggleFallPicot,
   onOpenCheckout,
-  selectedCurrency
+  selectedCurrency,
+  pendingItemIndex = null
 }: CartDrawerProps) {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; percent: number } | null>(null);
@@ -134,10 +136,11 @@ export default function CartDrawer({
                         </h4>
                         <button
                           onClick={() => onRemoveItem(idx)}
-                          className="text-stone-400 hover:text-red-700 cursor-pointer"
+                          disabled={pendingItemIndex === idx}
+                          className="text-stone-400 hover:text-red-700 disabled:cursor-wait disabled:opacity-60 cursor-pointer"
                           title="Remove item"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          {pendingItemIndex === idx ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                         </button>
                       </div>
 
@@ -168,14 +171,16 @@ export default function CartDrawer({
                       <div className="flex items-center gap-1 bg-white border border-stone-300 rounded px-1.5 py-0.5">
                         <button
                           onClick={() => onUpdateQuantity(idx, item.quantity - 1)}
-                          className="px-1 text-stone-600 hover:text-black font-bold cursor-pointer"
+                          disabled={pendingItemIndex === idx}
+                          className="px-1 text-stone-600 hover:text-black disabled:cursor-wait disabled:opacity-50 font-bold cursor-pointer"
                         >
                           -
                         </button>
                         <span className="font-bold px-1 text-stone-900 text-xs">{item.quantity}</span>
                         <button
                           onClick={() => onUpdateQuantity(idx, item.quantity + 1)}
-                          className="px-1 text-stone-600 hover:text-black font-bold cursor-pointer"
+                          disabled={pendingItemIndex === idx}
+                          className="px-1 text-stone-600 hover:text-black disabled:cursor-wait disabled:opacity-50 font-bold cursor-pointer"
                         >
                           +
                         </button>

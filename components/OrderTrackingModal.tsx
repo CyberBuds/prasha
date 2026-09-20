@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Search, CheckCircle2, Clock, Truck, Package, ShieldCheck } from 'lucide-react';
+import { X, Search, CheckCircle2, Clock, Truck, Package, ShieldCheck, LoaderCircle } from 'lucide-react';
 import { OrderDetails } from '@/types';
 
 interface OrderTrackingModalProps {
@@ -23,6 +23,7 @@ export default function OrderTrackingModal({
     ordersList.length > 0 ? ordersList[0] : null
   );
   const [errorMsg, setErrorMsg] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
 
   React.useEffect(() => {
     if (isOpen && selectedOrder) {
@@ -35,13 +36,15 @@ export default function OrderTrackingModal({
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSearching) return;
+    setIsSearching(true);
+    setErrorMsg('');
     const clean = searchId.trim().toUpperCase();
     const match = ordersList.find((o) => o.orderId.toUpperCase() === clean);
-    if (match) {
-      setFoundOrder(match);
-      setErrorMsg('');
-    } else if (trackingEmail.trim()) {
-      try {
+    try {
+      if (match) {
+        setFoundOrder(match);
+      } else if (trackingEmail.trim()) {
         const response = await fetch(`/api/storefront/orders/track?orderNumber=${encodeURIComponent(clean)}&email=${encodeURIComponent(trackingEmail.trim())}`);
         if (!response.ok) throw new Error('Order not found');
         const payload = await response.json();
@@ -65,12 +68,13 @@ export default function OrderTrackingModal({
           createdAt: new Date(order.createdAt || Date.now()).toLocaleDateString('en-IN'),
           estimatedDelivery: 'To be confirmed'
         });
-        setErrorMsg('');
-      } catch {
-        setErrorMsg('Order not found. Check the order number and email address.');
+      } else {
+        setErrorMsg('Enter the email used during checkout to track this order.');
       }
-    } else {
-      setErrorMsg('Enter the email used during checkout to track this order.');
+    } catch {
+      setErrorMsg('Order not found. Check the order number and email address.');
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -120,8 +124,9 @@ export default function OrderTrackingModal({
             className="w-full px-3 py-2.5 bg-[#FAF8F5] border border-stone-300 rounded-lg text-xs font-medium text-stone-900 focus:outline-none focus:border-[#581825]"
             required
           />
-          <button type="submit" className="w-full px-5 py-2.5 bg-[#581825] text-amber-100 font-bold rounded-lg text-xs hover:bg-[#722031] cursor-pointer">
-            Track Order
+          <button type="submit" disabled={isSearching} className="w-full px-5 py-2.5 bg-[#581825] text-amber-100 font-bold rounded-lg text-xs hover:bg-[#722031] disabled:opacity-70 disabled:cursor-wait cursor-pointer flex items-center justify-center gap-2">
+            {isSearching && <LoaderCircle className="w-3.5 h-3.5 animate-spin" />}
+            {isSearching ? 'Searching...' : 'Track Order'}
           </button>
         </form>}
 

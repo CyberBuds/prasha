@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Heart, Eye, ShoppingBag, Star, ShieldCheck } from 'lucide-react';
+import { Heart, Eye, ShoppingBag, Star, ShieldCheck, LoaderCircle } from 'lucide-react';
 import { Saree } from '@/types';
 import { formatPrice } from './Navbar';
 
@@ -12,6 +12,7 @@ interface ProductCardProps {
   onToggleWishlist: (sareeId: string) => void;
   onQuickView: (saree: Saree) => void;
   onAddToCart: (saree: Saree) => void;
+  isAddingToCart?: boolean;
 }
 
 export default function ProductCard({
@@ -20,13 +21,16 @@ export default function ProductCard({
   isWishlisted,
   onToggleWishlist,
   onQuickView,
-  onAddToCart
+  onAddToCart,
+  isAddingToCart = false
 }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [addedAnimation, setAddedAnimation] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isAddingToCart) return;
     onAddToCart(saree);
     setAddedAnimation(true);
     setTimeout(() => setAddedAnimation(false), 1500);
@@ -43,10 +47,12 @@ export default function ProductCard({
         onClick={() => onQuickView(saree)}
         className="relative aspect-[3/4] w-full bg-[#F5F1E9] overflow-hidden cursor-pointer"
       >
+        {!imageLoaded && <div className="absolute inset-0 animate-pulse bg-[#E8E0D4]" aria-label="Loading product image" />}
         <img
           src={isHovered ? saree.secondaryImage : saree.primaryImage}
           alt={saree.title}
-          className="w-full h-full object-cover object-center transition-all duration-700 ease-out group-hover:scale-105"
+          onLoad={() => setImageLoaded(true)}
+          className={`w-full h-full object-cover object-center transition-all duration-700 ease-out group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
           referrerPolicy="no-referrer"
         />
 
@@ -101,12 +107,13 @@ export default function ProductCard({
 
           <button
             onClick={handleQuickAdd}
-            className={`p-2.5 rounded-md text-xs font-bold text-white shadow-md flex items-center justify-center transition-all cursor-pointer ${
+            disabled={isAddingToCart}
+            className={`p-2.5 rounded-md text-xs font-bold text-white shadow-md flex items-center justify-center transition-all cursor-pointer disabled:cursor-wait disabled:opacity-80 ${
               addedAnimation ? 'bg-emerald-700' : 'bg-[#641F96] hover:bg-[#3B0B5C]'
             }`}
             title="Quick Add to Cart"
           >
-            <ShoppingBag className="w-4 h-4" />
+            {isAddingToCart ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <ShoppingBag className="w-4 h-4" />}
           </button>
         </div>
       </div>

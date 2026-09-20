@@ -40,6 +40,9 @@ function toUserProfile(customer: any): UserProfile {
 
 export default function Home() {
   const [sarees, setSarees] = useState<Saree[]>([]);
+  const [isCatalogLoading, setIsCatalogLoading] = useState(true);
+  const [addingToCartId, setAddingToCartId] = useState<string | null>(null);
+  const [pendingCartItemIndex, setPendingCartItemIndex] = useState<number | null>(null);
   const [catalogCategories, setCatalogCategories] = useState<CatalogCategory[]>([]);
   const [cartSessionId, setCartSessionId] = useState<string | null>(null);
   const [remoteCartItemIds, setRemoteCartItemIds] = useState<Record<string, number>>({});
@@ -76,6 +79,9 @@ export default function Home() {
       })
       .catch(() => {
         // The local catalogue remains available when the API is unavailable.
+      })
+      .finally(() => {
+        if (isMounted) setIsCatalogLoading(false);
       });
 
     return () => {
@@ -235,6 +241,7 @@ export default function Home() {
   // Cart Actions
   const handleAddToCart = (saree: Saree, fallAndPicot: boolean = true, blouseOptions?: BlouseCustomization) => {
     const productId = Number(saree.id);
+    setAddingToCartId(saree.id);
     if (cartSessionId && Number.isInteger(productId) && productId > 0) {
       void fetch('/api/cart', {
         method: 'POST',
@@ -249,7 +256,11 @@ export default function Home() {
         }
       }).catch(() => {
         // Keep the local bag usable if the remote cart is unavailable.
+      }).finally(() => {
+        setAddingToCartId(null);
       });
+    } else {
+      setAddingToCartId(null);
     }
 
     setCartItems(prev => {
@@ -295,6 +306,8 @@ export default function Home() {
   };
 
   const handleUpdateCartQty = (index: number, newQty: number) => {
+    if (pendingCartItemIndex === index) return;
+    setPendingCartItemIndex(index);
     if (newQty <= 0) {
       handleRemoveCartItem(index);
       return;
@@ -312,15 +325,19 @@ export default function Home() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantity: newQty })
-      }).catch(() => undefined);
+      }).catch(() => undefined).finally(() => setPendingCartItemIndex(null));
+    } else {
+      setPendingCartItemIndex(null);
     }
   };
 
   const handleRemoveCartItem = (index: number) => {
+    if (pendingCartItemIndex !== null && pendingCartItemIndex !== index) return;
+    setPendingCartItemIndex(index);
     const cartItem = cartItems[index];
     const remoteItemId = cartItem ? remoteCartItemIds[cartItem.saree.id] : undefined;
     if (remoteItemId) {
-      void fetch(`/api/cart/items/${remoteItemId}`, { method: 'DELETE' }).catch(() => undefined);
+      void fetch(`/api/cart/items/${remoteItemId}`, { method: 'DELETE' }).catch(() => undefined).finally(() => setPendingCartItemIndex(null));
       setRemoteCartItemIds((current) => {
         const next = { ...current };
         delete next[cartItem.saree.id];
@@ -328,6 +345,7 @@ export default function Home() {
       });
     }
     setCartItems(prev => prev.filter((_, i) => i !== index));
+    if (!remoteItemId) setPendingCartItemIndex(null);
   };
 
   const handleToggleFallPicot = (index: number) => {
@@ -424,6 +442,7 @@ export default function Home() {
             saree={selectedSareeForPage}
             selectedCurrency={selectedCurrency}
             isWishlisted={wishlistIds.includes(selectedSareeForPage.id)}
+            isAddingToCart={addingToCartId === selectedSareeForPage.id}
             onToggleWishlist={handleToggleWishlist}
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
@@ -452,6 +471,8 @@ export default function Home() {
             {/* Product Catalogue Grid */}
             <ProductGrid
               sarees={filteredSarees}
+              isLoading={isCatalogLoading}
+              addingToCartId={addingToCartId}
               selectedCurrency={selectedCurrency}
               wishlistIds={wishlistIds}
               onToggleWishlist={handleToggleWishlist}
@@ -532,6 +553,7 @@ export default function Home() {
           void handleCheckoutRequest(disc, gift);
         }}
         selectedCurrency={selectedCurrency}
+        pendingItemIndex={pendingCartItemIndex}
       />
 
       {/* 4. Checkout Modal */}
