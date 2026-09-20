@@ -75,6 +75,7 @@ export function mapCatalogProduct(product: CatalogProduct): Saree {
 
   return {
     id: String(product.id),
+    slug: product.slug,
     title: product.productName,
     subtitle: text(product.shortDescription, 'Authentic handloom craftsmanship from Prasha'),
     craft: asCraft(category),

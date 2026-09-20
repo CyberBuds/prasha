@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Mail, ShieldCheck, MapPin, Phone, Heart, Check } from 'lucide-react';
 
 interface FooterProps {
@@ -142,6 +143,19 @@ export default function Footer({
               <li><span>Custom Blouse Tailoring</span></li>
               <li><span>Silk Mark Certificate Lookup</span></li>
               <li><span>7-Day Easy Handloom Return</span></li>
+            </ul>
+          </div>
+
+          {/* Policies */}
+          <div>
+            <h4 className="font-serif text-xs font-bold text-[#E6C268] uppercase tracking-wider mb-3 border-b border-[#641F96]/50 pb-2">
+              Policies
+            </h4>
+            <ul className="space-y-2 text-stone-200 font-normal">
+              <li><Link href="/privacy-policy" className="hover:text-[#E6C268] transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/return-refund-policy" className="hover:text-[#E6C268] transition-colors">Return &amp; Refund Policy</Link></li>
+              <li><Link href="/terms-of-services" className="hover:text-[#E6C268] transition-colors">Terms of Services</Link></li>
+              <li><Link href="/delivery-policy" className="hover:text-[#E6C268] transition-colors">Delivery Policy</Link></li>
             </ul>
           </div>
 

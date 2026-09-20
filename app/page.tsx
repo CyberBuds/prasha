@@ -119,8 +119,10 @@ export default function Home() {
 
   useEffect(() => {
     const syncProductFromUrl = () => {
-      const productId = new URLSearchParams(window.location.search).get('product');
-      const product = productId ? sarees.find((item) => item.id === productId) : null;
+      const productKey = new URLSearchParams(window.location.search).get('product');
+      const product = productKey
+        ? sarees.find((item) => item.slug === productKey || item.id === productKey)
+        : null;
       setSelectedSareeForPage(product || null);
     };
 
@@ -208,7 +210,8 @@ export default function Home() {
 
   const handleOpenProductDetail = (saree: Saree) => {
     setSelectedSareeForPage(saree);
-    window.history.pushState({}, '', `/?product=${encodeURIComponent(saree.id)}`);
+    const productKey = saree.slug || saree.id;
+    window.history.pushState({}, '', `/?product=${encodeURIComponent(productKey)}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
