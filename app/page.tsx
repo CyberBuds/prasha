@@ -117,6 +117,18 @@ export default function Home() {
   // Full Page Product Detail view state
   const [selectedSareeForPage, setSelectedSareeForPage] = useState<Saree | null>(null);
 
+  useEffect(() => {
+    const syncProductFromUrl = () => {
+      const productId = new URLSearchParams(window.location.search).get('product');
+      const product = productId ? sarees.find((item) => item.id === productId) : null;
+      setSelectedSareeForPage(product || null);
+    };
+
+    syncProductFromUrl();
+    window.addEventListener('popstate', syncProductFromUrl);
+    return () => window.removeEventListener('popstate', syncProductFromUrl);
+  }, [sarees]);
+
   const [filterState, setFilterState] = useState<FilterState>({
     crafts: [],
     fabrics: [],
@@ -196,12 +208,18 @@ export default function Home() {
 
   const handleOpenProductDetail = (saree: Saree) => {
     setSelectedSareeForPage(saree);
+    window.history.pushState({}, '', `/?product=${encodeURIComponent(saree.id)}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCloseProductDetail = () => {
+    window.history.replaceState({}, '', '/');
+    setSelectedSareeForPage(null);
   };
 
   // Category Selection Handler
   const handleSelectCategory = (cat?: string) => {
-    setSelectedSareeForPage(null); // Return to home grid when choosing a category
+    handleCloseProductDetail();
     if (!cat || cat === 'ALL') {
       setFilterState(prev => ({ ...prev, crafts: [], occasions: [], searchQuery: '', onlyBestsellers: false }));
       setSelectedCategoryTitle('All Heritage Weaves');
@@ -449,7 +467,7 @@ export default function Home() {
             onToggleWishlist={handleToggleWishlist}
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
-            onBack={() => setSelectedSareeForPage(null)}
+            onBack={handleCloseProductDetail}
             allSarees={sarees}
             onSelectSaree={handleOpenProductDetail}
             onOpenAiStylistWithPrompt={(prompt) => {
