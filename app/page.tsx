@@ -239,10 +239,11 @@ export default function Home() {
   };
 
   // Cart Actions
-  const handleAddToCart = (saree: Saree, fallAndPicot: boolean = true, blouseOptions?: BlouseCustomization) => {
+  const handleAddToCart = (saree: Saree, fallAndPicot: boolean = true, blouseOptions?: BlouseCustomization, keepExistingQuantity = false) => {
     const productId = Number(saree.id);
+    const alreadyInCart = cartItems.some((item) => item.saree.id === saree.id);
     setAddingToCartId(saree.id);
-    if (cartSessionId && Number.isInteger(productId) && productId > 0) {
+    if (cartSessionId && Number.isInteger(productId) && productId > 0 && !(keepExistingQuantity && alreadyInCart)) {
       void fetch('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -266,6 +267,7 @@ export default function Home() {
     setCartItems(prev => {
       const existingIdx = prev.findIndex(item => item.saree.id === saree.id);
       if (existingIdx > -1) {
+        if (keepExistingQuantity) return prev;
         const updated = [...prev];
         updated[existingIdx].quantity += 1;
         return updated;
@@ -301,7 +303,8 @@ export default function Home() {
 
   const handleBuyNow = async (saree: Saree, fallAndPicot: boolean = true, blouseOptions?: BlouseCustomization) => {
     if (!await requireActiveSession('Please log in to buy this item.')) return;
-    handleAddToCart(saree, fallAndPicot, blouseOptions);
+    handleAddToCart(saree, fallAndPicot, blouseOptions, true);
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
     await handleCheckoutRequest();
   };
 

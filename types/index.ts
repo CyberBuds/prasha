@@ -60,6 +60,7 @@ export interface Saree {
 
 export interface BlouseCustomization {
   stitchType: 'unstitched' | 'stitched';
+  stitchingFee?: number;
   bustSize?: number; // 32, 34, 36, 38, 40, 42, 44
   neckStyle?: 'classic_u' | 'sweetheart' | 'boat_neck' | 'deep_back_latkan';
   sleeveStyle?: 'elbow_length' | 'short_sleeve' | 'sleeveless';

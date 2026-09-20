@@ -79,15 +79,20 @@ export default function ProductDetailPage({
   const [activeTab, setActiveTab] = useState<'specs' | 'weaver' | 'care' | 'reviews'>('specs');
   const [addedToCartSuccess, setAddedToCartSuccess] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
 
   const relatedSarees = allSarees
     .filter(s => s.id !== saree.id && (s.craft === saree.craft || s.fabric === saree.fabric))
     .slice(0, 4);
 
+  const stitchingFee = blouseType === 'stitched_standard' ? 1200 : blouseType === 'stitched_custom' ? 2200 : 0;
+  const displayedPrice = saree.price + stitchingFee;
+
   const handleAddToCart = () => {
     if (isAddingToCart) return;
     const blouseOptions: BlouseCustomization = {
       stitchType: blouseType === 'unstitched' ? 'unstitched' : 'stitched',
+      stitchingFee,
       bustSize: blouseType !== 'unstitched' ? parseInt(blouseSize, 10) : undefined,
       neckStyle: 'sweetheart',
       sleeveStyle: 'elbow_length'
@@ -108,11 +113,20 @@ export default function ProductDetailPage({
   };
 
   const handleShare = () => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
-    }
+    setShareMenuOpen((open) => !open);
+  };
+
+  const copyShareLink = async () => {
+    await navigator.clipboard?.writeText(window.location.href);
+    setCopiedLink(true);
+    setShareMenuOpen(false);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const shareToWhatsApp = () => {
+    const message = encodeURIComponent(`Take a look at ${saree.title}: ${window.location.href}`);
+    window.open(`https://wa.me/?text=${message}`, '_blank', 'noopener,noreferrer');
+    setShareMenuOpen(false);
   };
 
   return (
@@ -139,14 +153,22 @@ export default function ProductDetailPage({
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleShare}
-              className="p-2 rounded-full bg-[#F7F5F0] border border-[#E5E5E5] text-[#555] hover:text-[#641F96] transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
-              title="Share Link"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{copiedLink ? 'Link Copied!' : 'Share'}</span>
-            </button>
+            <div className="relative">
+              <button
+                onClick={handleShare}
+                className="p-2 rounded-full bg-[#F7F5F0] border border-[#E5E5E5] text-[#555] hover:text-[#641F96] transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+                title="Share Product"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{copiedLink ? 'Link Copied!' : 'Share'}</span>
+              </button>
+              {shareMenuOpen && (
+                <div className="absolute right-0 top-11 z-20 w-40 rounded-lg border border-stone-200 bg-white p-1.5 shadow-lg">
+                  <button onClick={shareToWhatsApp} className="w-full rounded px-3 py-2 text-left text-xs hover:bg-stone-100">Share on WhatsApp</button>
+                  <button onClick={copyShareLink} className="w-full rounded px-3 py-2 text-left text-xs hover:bg-stone-100">Copy product link</button>
+                </div>
+              )}
+            </div>
 
             <button
               onClick={() => onToggleWishlist(saree.id)}
@@ -303,7 +325,7 @@ export default function ProductDetailPage({
             <div className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E5E5E5] space-y-2">
               <div className="flex items-baseline gap-3">
                 <span className="text-3xl font-bold text-[#641F96]">
-                  {formatPrice(saree.price, selectedCurrency)}
+                  {formatPrice(displayedPrice, selectedCurrency)}
                 </span>
                 {saree.originalPrice > saree.price && (
                   <span className="text-base text-stone-400 line-through">
@@ -423,9 +445,11 @@ export default function ProductDetailPage({
                   placeholder="Enter Pincode (e.g. 110001)"
                   value={pincode}
                   onChange={(e) => {
-                    setPincode(e.target.value);
+                    setPincode(e.target.value.replace(/\D/g, '').slice(0, 6));
                     setPincodeChecked(false);
                   }}
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
                   className="flex-1 px-3 py-2 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#641F96]"
                 />
                 <button

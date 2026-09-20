@@ -13,7 +13,9 @@ import {
   ExternalLink,
   Edit3,
   Check,
-  LoaderCircle
+  LoaderCircle,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { UserProfile, OrderDetails } from '@/types';
 import { formatPrice } from './Navbar';
@@ -49,6 +51,7 @@ export default function AuthModal({
   const [phoneInput, setPhoneInput] = useState('');
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [nameInput, setNameInput] = useState('');
 
   const [accountTab, setAccountTab] = useState<'orders' | 'profile'>('orders');
@@ -222,11 +225,10 @@ export default function AuthModal({
         tier: 'Silver Patron'
       };
 
-      window.localStorage.setItem('prasha-auth-token', payload?.data?.accessToken || '');
-      window.localStorage.setItem('prasha-refresh-token', payload?.data?.refreshToken || '');
-      onLogin(newUser);
+      setAuthMode('login');
+      setPasswordInput('');
       setErrorMsg('');
-      setSuccessMsg('Welcome to PRASHA! Your account has been created.');
+      setSuccessMsg('Account created successfully. Please sign in to continue.');
     } catch (error) {
       setErrorMsg(error instanceof Error ? error.message : 'Unable to create your account right now.');
     } finally {
@@ -252,8 +254,16 @@ export default function AuthModal({
 
     try {
       const addressFields = [updated.address, updated.city, updated.state, updated.pincode];
-      if (addressFields.some(Boolean) && addressFields.some((value) => !value)) {
-        throw new Error('Please complete your address, city, state, and pincode.');
+      const requiredAddressFields: Array<[string, string]> = [
+        [updated.address, 'Please enter your address.'],
+        [updated.city, 'Please enter City.'],
+        [updated.state, 'Please enter State.'],
+        [updated.pincode, 'Please enter Pincode.']
+      ];
+      if (addressFields.some(Boolean)) {
+        const missingField = requiredAddressFields.find(([value]) => !value);
+        if (missingField) throw new Error(missingField[1]);
+        if (!/^\d{6}$/.test(updated.pincode)) throw new Error('Pincode must contain exactly 6 digits.');
       }
 
       const [firstName, ...restName] = updated.name.split(/\s+/);
@@ -520,7 +530,10 @@ export default function AuthModal({
                     <input
                       type="text"
                       value={editPincode}
-                      onChange={(e) => setEditPincode(e.target.value)}
+                      inputMode="numeric"
+                      pattern="[0-9]{6}"
+                      maxLength={6}
+                      onChange={(e) => setEditPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                       className="w-full px-2.5 py-1.5 text-xs border border-stone-200 rounded-lg focus:outline-none focus:border-[#641F96]"
                     />
                   </div>
@@ -586,7 +599,7 @@ export default function AuthModal({
             {authMode === 'login' ? (
               <div className="space-y-3">
                 <form onSubmit={handlePasswordLogin} className="space-y-3">
-                    <div>
+                    <div className="relative">
                       <label className="block text-xs font-semibold text-stone-700 mb-1">
                         Email Address
                       </label>
@@ -599,18 +612,21 @@ export default function AuthModal({
                         required
                       />
                     </div>
-                    <div>
+                    <div className="relative">
                       <label className="block text-xs font-semibold text-stone-700 mb-1">
                         Password
                       </label>
                       <input
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         placeholder="••••••••"
                         value={passwordInput}
                         onChange={(e) => setPasswordInput(e.target.value)}
                         className="w-full px-3 py-2 text-xs border border-stone-300 rounded-lg focus:outline-none focus:border-[#641F96]"
                         required
                       />
+                      <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute right-2 top-7 p-1 text-stone-500 hover:text-[#641F96]" aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                     <button
                       type="submit"
@@ -623,7 +639,7 @@ export default function AuthModal({
               </div>
             ) : (
               <form onSubmit={handleRegister} className="space-y-3">
-                <div>
+                    <div>
                   <label className="block text-xs font-semibold text-stone-700 mb-1">
                     Full Name
                   </label>
@@ -636,7 +652,7 @@ export default function AuthModal({
                     required
                   />
                 </div>
-                <div>
+                    <div>
                   <label className="block text-xs font-semibold text-stone-700 mb-1">
                     Mobile Number
                   </label>
@@ -668,18 +684,21 @@ export default function AuthModal({
                     required
                   />
                 </div>
-                <div>
+                <div className="relative">
                   <label className="block text-xs font-semibold text-stone-700 mb-1">
                     Create Password
                   </label>
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={passwordInput}
                     onChange={(e) => setPasswordInput(e.target.value)}
                     className="w-full px-3 py-2 text-xs border border-stone-300 rounded-lg focus:outline-none focus:border-[#641F96]"
                     required
                   />
+                  <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute right-2 top-7 p-1 text-stone-500 hover:text-[#641F96]" aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
 
                 <button

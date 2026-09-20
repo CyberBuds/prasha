@@ -340,7 +340,9 @@ export default function QuickViewModal({
                     <input
                       type="text"
                       value={pincode}
-                      onChange={(e) => setPincode(e.target.value)}
+                      onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      inputMode="numeric"
+                      pattern="[0-9]{6}"
                       placeholder="Enter 6-digit Pincode (e.g. 110001)"
                       maxLength={6}
                       className="flex-1 px-3 py-1.5 bg-[#FAF8F5] border border-stone-300 rounded text-xs focus:outline-none focus:border-[#581825]"

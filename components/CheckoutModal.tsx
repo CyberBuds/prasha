@@ -106,7 +106,7 @@ export default function CheckoutModal({
   if (!isOpen) return null;
 
   const itemsSubtotal = cartItems.reduce((sum, item) => {
-    const blouseFee = item.blouseCustomization.stitchType === 'stitched' ? 1200 : 0;
+    const blouseFee = item.blouseCustomization.stitchingFee ?? (item.blouseCustomization.stitchType === 'stitched' ? 1200 : 0);
     const fallFee = item.fallAndPicot ? 250 : 0;
     return sum + (item.saree.price + blouseFee + fallFee) * item.quantity;
   }, 0);
@@ -304,7 +304,9 @@ export default function CheckoutModal({
                     required
                     maxLength={6}
                     value={pincode}
-                    onChange={(e) => setPincode(e.target.value)}
+                    inputMode="numeric"
+                    pattern="[0-9]{6}"
+                    onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     className="w-full p-2.5 bg-[#FAF8F5] border border-stone-300 rounded text-stone-900 focus:outline-none focus:border-[#581825]"
                   />
                 </div>

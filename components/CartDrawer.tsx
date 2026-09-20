@@ -37,7 +37,7 @@ export default function CartDrawer({
 
   // Calculation
   const itemsSubtotal = cartItems.reduce((sum, item) => {
-    const blouseFee = item.blouseCustomization.stitchType === 'stitched' ? 1200 : 0;
+    const blouseFee = item.blouseCustomization.stitchingFee ?? (item.blouseCustomization.stitchType === 'stitched' ? 1200 : 0);
     const fallFee = item.fallAndPicot ? 250 : 0;
     return sum + (item.saree.price + blouseFee + fallFee) * item.quantity;
   }, 0);
@@ -112,7 +112,7 @@ export default function CartDrawer({
         <div className="flex-1 overflow-y-auto my-4 space-y-4 pr-1">
           {cartItems.length > 0 ? (
             cartItems.map((item, idx) => {
-              const blouseFee = item.blouseCustomization.stitchType === 'stitched' ? 1200 : 0;
+              const blouseFee = item.blouseCustomization.stitchingFee ?? (item.blouseCustomization.stitchType === 'stitched' ? 1200 : 0);
               const fallFee = item.fallAndPicot ? 250 : 0;
               const unitTotal = item.saree.price + blouseFee + fallFee;
 
