@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   ArrowLeft, 
   Heart, 
@@ -58,6 +58,10 @@ export default function ProductDetailPage({
   ];
 
   const [selectedImage, setSelectedImage] = useState<string>(galleryImages[0]);
+
+  useEffect(() => {
+    setSelectedImage(galleryImages[0]);
+  }, [saree.id, saree.primaryImage]);
 
   const currentImgIndex = galleryImages.indexOf(selectedImage);
   const handlePrevImage = () => {
@@ -444,12 +448,13 @@ export default function ProductDetailPage({
               {activeTab === 'specs' && (
                 <div className="space-y-2 text-xs text-stone-700 animate-fadeIn">
                   <div className="grid grid-cols-2 gap-2 p-3 bg-[#F7F5F0] rounded-lg">
-                    <div><span className="font-bold text-stone-900">Craft:</span> {saree.craft}</div>
-                    <div><span className="font-bold text-stone-900">Fabric:</span> {saree.fabric}</div>
-                    <div><span className="font-bold text-stone-900">Zari Type:</span> {saree.zariType || 'Tested Pure Gold Zari'}</div>
-                    <div><span className="font-bold text-stone-900">Length:</span> {saree.length}</div>
-                    <div><span className="font-bold text-stone-900">Weight:</span> {saree.weight}</div>
-                    <div><span className="font-bold text-stone-900">Origin:</span> {saree.weaverLocation}</div>
+                    {saree.attributes?.length ? saree.attributes.map((attribute) => (
+                      <div key={attribute.attributeKey}>
+                        <span className="font-bold text-stone-900">{attribute.attributeKey}:</span> {attribute.attributeValue}
+                      </div>
+                    )) : (
+                      <p className="col-span-2 text-stone-500">No product specifications available.</p>
+                    )}
                   </div>
                 </div>
               )}

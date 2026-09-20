@@ -45,7 +45,10 @@ function numberValue(value: unknown, fallback: number) {
 }
 
 function findAttribute(product: CatalogProduct, key: string) {
-  return product.attributes?.find((attribute) => attribute.attributeKey?.toLowerCase() === key.toLowerCase())?.attributeValue;
+  const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return product.attributes?.find((attribute) =>
+    attribute.attributeKey?.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedKey
+  )?.attributeValue;
 }
 
 function asCraft(value: string): CraftType {
@@ -76,6 +79,9 @@ export function mapCatalogProduct(product: CatalogProduct): Saree {
   return {
     id: String(product.id),
     slug: product.slug,
+    attributes: product.attributes
+      ?.filter((attribute): attribute is { attributeKey: string; attributeValue: string } => Boolean(attribute.attributeKey && attribute.attributeValue))
+      .map((attribute) => ({ attributeKey: attribute.attributeKey, attributeValue: attribute.attributeValue })),
     title: product.productName,
     subtitle: text(product.shortDescription, 'Authentic handloom craftsmanship from Prasha'),
     craft: asCraft(category),

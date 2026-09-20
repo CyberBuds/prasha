@@ -26,6 +26,7 @@ export interface CustomerReview {
 export interface Saree {
   id: string;
   slug?: string;
+  attributes?: Array<{ attributeKey: string; attributeValue: string }>;
   title: string;
   subtitle: string;
   craft: CraftType;
