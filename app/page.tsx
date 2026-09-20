@@ -19,7 +19,6 @@ import AuthModal from '@/components/AuthModal';
 import WeaverStorySection from '@/components/WeaverStorySection';
 import Footer from '@/components/Footer';
 
-import { INITIAL_SAREES } from '@/data/sarees';
 import { Saree, CartItem, FilterState, BlouseCustomization, OrderDetails, UserProfile } from '@/types';
 import { CatalogCategory, fetchCatalog } from '@/lib/catalog';
 import { authenticatedFetch, clearSession, getValidatedSession, SESSION_EXPIRED_EVENT } from '@/lib/session';
@@ -40,12 +39,12 @@ function toUserProfile(customer: any): UserProfile {
 }
 
 export default function Home() {
-  const [sarees, setSarees] = useState<Saree[]>(INITIAL_SAREES);
+  const [sarees, setSarees] = useState<Saree[]>([]);
   const [catalogCategories, setCatalogCategories] = useState<CatalogCategory[]>([]);
   const [cartSessionId, setCartSessionId] = useState<string | null>(null);
   const [remoteCartItemIds, setRemoteCartItemIds] = useState<Record<string, number>>({});
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [wishlistIds, setWishlistIds] = useState<string[]>([INITIAL_SAREES[1].id]);
+  const [wishlistIds, setWishlistIds] = useState<string[]>([]);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [checkoutLoginPending, setCheckoutLoginPending] = useState(false);
   const [checkoutLoginPrompt, setCheckoutLoginPrompt] = useState('');

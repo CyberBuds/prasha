@@ -1,4 +1,3 @@
-import { INITIAL_SAREES } from '@/data/sarees';
 import { CraftType, FabricType, OccasionType, Saree } from '@/types';
 
 export interface CatalogProduct {
@@ -34,7 +33,7 @@ export interface CatalogCategory {
   image?: string | null;
 }
 
-const DEFAULT_IMAGE = INITIAL_SAREES[0].primaryImage;
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80';
 
 function text(value: unknown, fallback: string) {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
