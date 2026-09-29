@@ -32,6 +32,7 @@ interface AuthModalProps {
   onOpenOrderTracking: (order?: OrderDetails) => void;
   selectedCurrency: string;
   loginPrompt?: string;
+  fullPage?: boolean;
 }
 
 export default function AuthModal({
@@ -44,7 +45,8 @@ export default function AuthModal({
   ordersList,
   onOpenOrderTracking,
   selectedCurrency,
-  loginPrompt
+  loginPrompt,
+  fullPage = false
 }: AuthModalProps) {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
@@ -310,8 +312,8 @@ export default function AuthModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fadeIn">
-      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden my-auto border border-stone-100">
+    <div className={fullPage ? 'bg-[#FAF8F5] px-4 py-8 sm:px-6 sm:py-12' : 'fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fadeIn'}>
+      <div className={`relative w-full ${fullPage ? 'max-w-4xl mx-auto border border-stone-200 shadow-sm' : 'max-w-lg shadow-2xl my-auto border border-stone-100'} bg-white overflow-hidden ${fullPage ? 'rounded-lg' : 'rounded-2xl'}`}>
         <div className="h-2 bg-gradient-to-r from-[#3B0B5C] via-[#641F96] to-[#E6C268]" />
 
         <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-stone-100">
@@ -331,14 +333,14 @@ export default function AuthModal({
           <button
             onClick={onClose}
             className="p-1.5 text-stone-400 hover:text-stone-900 rounded-full hover:bg-stone-100 transition-colors cursor-pointer"
-            aria-label="Close"
+            aria-label={fullPage ? 'Return to home page' : 'Close'}
           >
-            <X className="w-5 h-5" />
+            {fullPage ? <ArrowRight className="w-5 h-5 rotate-180" /> : <X className="w-5 h-5" />}
           </button>
         </div>
 
         {currentUser ? (
-          <div className="p-6 space-y-5">
+          <div className={`p-6 space-y-5 ${fullPage ? 'sm:p-8' : ''}`}>
             <div className="p-4 rounded-xl bg-gradient-to-br from-[#FAF8F5] to-[#F3EDE2] border border-[#E6C268]/40 flex items-center justify-between">
               <div className="flex items-center gap-3.5">
                 <div className="w-12 h-12 rounded-full bg-[#641F96] text-[#E6C268] font-serif font-bold text-lg flex items-center justify-center shadow-md">
@@ -396,7 +398,7 @@ export default function AuthModal({
             </div>
 
             {accountTab === 'orders' && (
-              <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+              <div className={`space-y-3 ${fullPage ? 'max-h-none' : 'max-h-[360px] overflow-y-auto'} pr-1`}>
                 {ordersList.length === 0 ? (
                   <div className="text-center py-10 px-4 bg-stone-50 rounded-xl border border-dashed border-stone-200">
                     <Package className="w-10 h-10 text-stone-300 mx-auto mb-2" />
@@ -551,7 +553,7 @@ export default function AuthModal({
             )}
           </div>
         ) : (
-          <div className="p-6 space-y-4">
+          <div className={`p-6 space-y-4 ${fullPage ? 'sm:p-8' : ''}`}>
             <div className="flex bg-stone-100 p-1 rounded-lg">
               <button
                 type="button"

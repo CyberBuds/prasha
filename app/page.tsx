@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sparkles, MessageCircle } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import HeroCarousel from '@/components/HeroCarousel';
@@ -12,7 +13,6 @@ import ProductDetailPage from '@/components/ProductDetailPage';
 import RealReelsSection from '@/components/RealReelsSection';
 import CartDrawer from '@/components/CartDrawer';
 import CheckoutModal from '@/components/CheckoutModal';
-import OrderTrackingModal from '@/components/OrderTrackingModal';
 import WishlistDrawer from '@/components/WishlistDrawer';
 import AiStylistModal from '@/components/AiStylistModal';
 import AuthModal from '@/components/AuthModal';
@@ -39,6 +39,7 @@ function toUserProfile(customer: any): UserProfile {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [sarees, setSarees] = useState<Saree[]>([]);
   const [isCatalogLoading, setIsCatalogLoading] = useState(true);
   const [addingToCartId, setAddingToCartId] = useState<string | null>(null);
@@ -149,14 +150,12 @@ export default function Home() {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isAiStylistOpen, setIsAiStylistOpen] = useState(false);
-  const [isTrackOrderOpen, setIsTrackOrderOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   
   const [checkoutDiscount, setCheckoutDiscount] = useState(0);
   const [checkoutGiftWrap, setCheckoutGiftWrap] = useState(false);
   const [placedOrders, setPlacedOrders] = useState<OrderDetails[]>([]);
-  const [selectedTrackedOrder, setSelectedTrackedOrder] = useState<OrderDetails | null>(null);
 
   useEffect(() => {
     if (!currentUser) {
@@ -388,13 +387,6 @@ export default function Home() {
     );
   };
 
-  const handleOpenAccount = async () => {
-    if (window.localStorage.getItem('prasha-auth-token')) {
-      if (!await requireActiveSession('Your session has expired. Please log in again.')) return;
-    }
-    setIsAuthOpen(true);
-  };
-
   // Filtering Logic
   const filteredSarees = useMemo(() => {
     return sarees.filter(saree => {
@@ -445,11 +437,8 @@ export default function Home() {
         onOpenCart={() => setIsCartOpen(true)}
         onOpenWishlist={() => setIsWishlistOpen(true)}
         onOpenAiStylist={() => setIsAiStylistOpen(true)}
-        onOpenTrackOrder={() => {
-          setSelectedTrackedOrder(null);
-          setIsTrackOrderOpen(true);
-        }}
-        onOpenAuth={handleOpenAccount}
+        onOpenTrackOrder={() => router.push('/orders')}
+        onOpenAuth={() => router.push('/account')}
         onSelectCategory={handleSelectCategory}
         onSearchQuery={handleSearchQuery}
         selectedCurrency={selectedCurrency}
@@ -537,7 +526,7 @@ export default function Home() {
       {/* Footer */}
       <Footer
         onSelectCategory={handleSelectCategory}
-        onOpenTrackOrder={() => setIsTrackOrderOpen(true)}
+        onOpenTrackOrder={() => router.push('/orders')}
         onOpenAiStylist={() => setIsAiStylistOpen(true)}
       />
 
@@ -662,19 +651,10 @@ export default function Home() {
         ordersList={placedOrders}
         onOpenOrderTracking={(order) => {
           setIsAuthOpen(false);
-          setSelectedTrackedOrder(order || null);
-          setIsTrackOrderOpen(true);
+          router.push(order ? `/orders?order=${encodeURIComponent(order.orderId)}` : '/orders');
         }}
         selectedCurrency={selectedCurrency}
         loginPrompt={checkoutLoginPrompt}
-      />
-
-      {/* 8. Order Tracking Modal */}
-      <OrderTrackingModal
-        isOpen={isTrackOrderOpen}
-        onClose={() => setIsTrackOrderOpen(false)}
-        ordersList={placedOrders}
-        selectedOrder={selectedTrackedOrder}
       />
 
       {/* Floating AI Stylist Chat Assistant Trigger Button */}

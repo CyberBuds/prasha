@@ -188,3 +188,46 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  body.printing-receipt {
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body.printing-receipt > *:not(.print-receipt-root) {
+    display: none !important;
+  }
+
+  .print-receipt-root {
+    display: block !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    color: #1c1917 !important;
+    background: #fff !important;
+  }
+
+  .print-receipt-root > div {
+    max-width: 180mm !important;
+    margin: 0 auto !important;
+    padding: 8mm !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    animation: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-receipt-root .no-print {
+    display: none !important;
+  }
+}

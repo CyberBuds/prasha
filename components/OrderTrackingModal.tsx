@@ -9,13 +9,15 @@ interface OrderTrackingModalProps {
   onClose: () => void;
   ordersList: OrderDetails[];
   selectedOrder?: OrderDetails | null;
+  fullPage?: boolean;
 }
 
 export default function OrderTrackingModal({
   isOpen,
   onClose,
   ordersList,
-  selectedOrder = null
+  selectedOrder = null,
+  fullPage = false
 }: OrderTrackingModalProps) {
   const [searchId, setSearchId] = useState('');
   const [trackingEmail, setTrackingEmail] = useState('');
@@ -25,14 +27,9 @@ export default function OrderTrackingModal({
   const [errorMsg, setErrorMsg] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
-  React.useEffect(() => {
-    if (isOpen && selectedOrder) {
-      setFoundOrder(selectedOrder);
-      setErrorMsg('');
-    }
-  }, [isOpen, selectedOrder]);
+  if (!fullPage && !isOpen) return null;
 
-  if (!isOpen) return null;
+  const displayedOrder = selectedOrder || foundOrder;
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,8 +84,8 @@ export default function OrderTrackingModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fadeIn">
-      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden my-auto p-6 space-y-6">
+    <div className={fullPage ? 'bg-[#FAF8F5] px-4 py-8 sm:px-6 sm:py-12' : 'fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fadeIn'}>
+      <div className={`relative w-full ${fullPage ? 'max-w-4xl mx-auto border border-stone-200 shadow-sm rounded-lg' : 'max-w-2xl rounded-2xl shadow-2xl my-auto'} bg-white overflow-hidden p-6 space-y-6`}>
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-stone-200 pb-4">
@@ -99,13 +96,14 @@ export default function OrderTrackingModal({
           <button
             onClick={onClose}
             className="p-1.5 text-stone-400 hover:text-stone-900 cursor-pointer"
+            aria-label={fullPage ? 'Return to home page' : 'Close'}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Guests can manually track an order; authenticated users arrive with their selected order. */}
-        {!selectedOrder && <form onSubmit={handleSearch} className="space-y-2">
+        {(!selectedOrder || fullPage) && <form onSubmit={handleSearch} className="space-y-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 w-4 h-4 text-stone-400" />
             <input
@@ -133,22 +131,22 @@ export default function OrderTrackingModal({
         {errorMsg && <p className="text-xs text-red-600">{errorMsg}</p>}
 
         {/* Order Result Details */}
-        {foundOrder ? (
+        {displayedOrder ? (
           <div className="space-y-6 pt-2">
             <div className="p-4 bg-[#FAF8F5] rounded-xl border border-stone-200 flex flex-wrap items-center justify-between gap-4 text-xs">
               <div>
                 <p className="font-serif text-base font-bold text-[#581825]">
-                  Order #{foundOrder.orderId}
+                  Order #{displayedOrder.orderId}
                 </p>
-                <p className="text-stone-500 text-[11px]">Placed on {foundOrder.createdAt}</p>
+                <p className="text-stone-500 text-[11px]">Placed on {displayedOrder.createdAt}</p>
               </div>
 
               <div className="text-right">
                 <span className="text-[10px] uppercase font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded">
-                  Status: {foundOrder.status}
+                  Status: {displayedOrder.status}
                 </span>
                 <p className="text-stone-600 text-[11px] mt-1 font-semibold">
-                  Estimated Delivery: {foundOrder.estimatedDelivery}
+                  Estimated Delivery: {displayedOrder.estimatedDelivery}
                 </p>
               </div>
             </div>

@@ -42,6 +42,7 @@ export default function CheckoutModal({
   onOrderSuccess,
   onAuthenticationRequired
 }: CheckoutModalProps) {
+  const receiptRef = React.useRef<HTMLDivElement>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -178,7 +179,24 @@ export default function CheckoutModal({
   };
 
   const handlePrintReceipt = () => {
+    const receipt = receiptRef.current;
+    if (!receipt) return;
+
+    document.querySelector('.print-receipt-root')?.remove();
+    const printRoot = document.createElement('div');
+    printRoot.className = 'print-receipt-root';
+    printRoot.appendChild(receipt.cloneNode(true));
+    document.body.appendChild(printRoot);
+    document.body.classList.add('printing-receipt');
+
+    const cleanup = () => {
+      printRoot.remove();
+      document.body.classList.remove('printing-receipt');
+    };
+
+    window.addEventListener('afterprint', cleanup, { once: true });
     window.print();
+    window.setTimeout(cleanup, 1000);
   };
 
   return (
@@ -454,7 +472,7 @@ export default function CheckoutModal({
 
           {/* STEP 4: ORDER SUCCESS CONFIRMATION */}
           {step === 4 && orderConfirmed && (
-            <div className="text-center py-6 space-y-4 animate-fadeIn">
+            <div ref={receiptRef} className="text-center py-6 space-y-4 animate-fadeIn">
               <div className="w-16 h-16 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto shadow-sm">
                 <Check className="w-8 h-8" />
               </div>
@@ -487,7 +505,7 @@ export default function CheckoutModal({
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <div className="no-print flex flex-wrap items-center justify-center gap-3 pt-2">
                 <button
                   onClick={handlePrintReceipt}
                   className="px-5 py-2.5 rounded-lg border border-stone-300 text-stone-800 text-xs font-semibold hover:bg-stone-50 cursor-pointer flex items-center gap-2"
